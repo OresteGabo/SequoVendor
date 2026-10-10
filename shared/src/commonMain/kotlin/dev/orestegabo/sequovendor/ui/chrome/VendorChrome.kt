@@ -113,7 +113,6 @@ private val VendorPrimarySections = listOf(
     VendorSection.Dashboard,
     VendorSection.Orders,
     VendorSection.Catalog,
-    VendorSection.Store,
     VendorSection.Account,
 )
 
