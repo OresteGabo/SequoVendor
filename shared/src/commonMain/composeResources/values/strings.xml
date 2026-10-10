@@ -290,6 +290,20 @@
     <string name="account_detail">Profile, payments, availability, and local operating controls.</string>
     <string name="account_profile">Profile</string>
     <string name="account_provider">Provider</string>
+    <string name="account_user_id">User</string>
+    <string name="account_email">Email</string>
+    <string name="account_status">Status</string>
+    <string name="account_merchant_context">Merchant context</string>
+    <string name="account_merchant_id">Merchant ID</string>
+    <string name="account_language">Language</string>
+    <string name="account_theme">Theme</string>
+    <string name="account_api_health">API health</string>
+    <string name="account_api_healthy">Sequo API is healthy</string>
+    <string name="account_api_unreachable">Sequo API is currently unreachable</string>
+    <string name="account_api_check">Check API health</string>
+    <string name="account_notifications_entry">Notification preferences</string>
+    <string name="account_legal_privacy">Legal and privacy</string>
+    <string name="account_open_notifications">Manage notifications</string>
     <string name="account_payments_accepted">Payments accepted</string>
     <string name="account_payment_mobile_money">Yas Togo / Moov Africa</string>
     <string name="account_payment_card">Card payments via Sequo checkout</string>
@@ -311,8 +325,8 @@
     <string name="error_rate_limited_detail">Too many requests. Please wait before trying again.</string>
     <string name="error_server_detail">The Sequo service is unavailable. Please try again soon.</string>
     <string name="error_generic_detail">Something went wrong. Please try again.</string>
-    <string name="legal_title">Legal</string>
-    <string name="legal_detail">Terms and privacy surfaces will live here.</string>
+    <string name="legal_title">Legal and privacy</string>
+    <string name="legal_detail">Sequo Vendor uses your account, merchant scope, order activity, notification preferences, and device identifiers only to operate seller workflows. Payment, delivery, and support records remain server-confirmed. Contact Sequo support for privacy, access, or deletion requests.</string>
     <string name="splash_title">Sequo Vendor</string>
     <string name="splash_subtitle">Vendor tools, ready.</string>
 </resources>
