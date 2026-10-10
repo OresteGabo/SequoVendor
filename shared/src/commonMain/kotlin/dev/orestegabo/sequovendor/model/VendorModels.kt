@@ -230,6 +230,7 @@ data class StoreAvailabilityState(
     val weekdayHours: String,
     val weekendHours: String,
     val openingHours: List<OpeningHoursDay> = emptyList(),
+    val temporaryExceptions: List<OpeningHoursException> = emptyList(),
     val temporaryClosure: TemporaryClosure? = null,
     val updatedAt: String? = null,
 )
@@ -242,6 +243,16 @@ data class OpeningHoursDay(
     val opensAt: String,
     val closesAt: String,
     val closed: Boolean = false,
+)
+
+@Serializable
+data class OpeningHoursException(
+    val id: String? = null,
+    val date: String,
+    val closed: Boolean,
+    val opensAt: String? = null,
+    val closesAt: String? = null,
+    val reason: String? = null,
 )
 
 @Serializable
@@ -388,5 +399,14 @@ object DemoVendorData {
         open = true,
         weekdayHours = "08:00-18:00",
         weekendHours = "09:00-14:00",
+        openingHours = listOf(
+            OpeningHoursDay(1, "08:00", "18:00"),
+            OpeningHoursDay(2, "08:00", "18:00"),
+            OpeningHoursDay(3, "08:00", "18:00"),
+            OpeningHoursDay(4, "08:00", "18:00"),
+            OpeningHoursDay(5, "08:00", "18:00"),
+            OpeningHoursDay(6, "09:00", "14:00"),
+            OpeningHoursDay(7, "", "", closed = true),
+        ),
     )
 }
