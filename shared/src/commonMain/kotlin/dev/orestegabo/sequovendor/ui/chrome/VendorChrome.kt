@@ -26,7 +26,8 @@ import sequovendor.shared.generated.resources.language_en
 import sequovendor.shared.generated.resources.language_fr
 import sequovendor.shared.generated.resources.nav_account
 import sequovendor.shared.generated.resources.nav_catalog
-import sequovendor.shared.generated.resources.nav_home
+import sequovendor.shared.generated.resources.nav_dashboard
+import sequovendor.shared.generated.resources.nav_notifications
 import sequovendor.shared.generated.resources.nav_orders
 import sequovendor.shared.generated.resources.nav_store
 import sequovendor.shared.generated.resources.theme_dark
@@ -97,7 +98,7 @@ internal fun VendorNavigationBar(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        VendorSection.entries.forEach { section ->
+        VendorPrimarySections.forEach { section ->
             VendorChip(
                 label = section.label(),
                 selected = current == section,
@@ -108,12 +109,21 @@ internal fun VendorNavigationBar(
     }
 }
 
+private val VendorPrimarySections = listOf(
+    VendorSection.Dashboard,
+    VendorSection.Orders,
+    VendorSection.Catalog,
+    VendorSection.Store,
+    VendorSection.Account,
+)
+
 @Composable
 private fun VendorSection.label(): String = when (this) {
-    VendorSection.Home -> appText(Res.string.nav_home)
+    VendorSection.Dashboard -> appText(Res.string.nav_dashboard)
     VendorSection.Orders -> appText(Res.string.nav_orders)
     VendorSection.Catalog -> appText(Res.string.nav_catalog)
     VendorSection.Store -> appText(Res.string.nav_store)
+    VendorSection.Notifications -> appText(Res.string.nav_notifications)
     VendorSection.Account -> appText(Res.string.nav_account)
 }
 
