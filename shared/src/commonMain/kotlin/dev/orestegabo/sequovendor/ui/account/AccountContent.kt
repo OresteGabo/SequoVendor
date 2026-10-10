@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -17,7 +16,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,8 +35,7 @@ import sequovendor.shared.generated.resources.account_availability
 import sequovendor.shared.generated.resources.account_demo
 import sequovendor.shared.generated.resources.account_detail
 import sequovendor.shared.generated.resources.account_exceptional_closure
-import sequovendor.shared.generated.resources.account_exceptional_closure_placeholder
-import sequovendor.shared.generated.resources.account_local_notice
+import sequovendor.shared.generated.resources.account_manage_store
 import sequovendor.shared.generated.resources.account_offline
 import sequovendor.shared.generated.resources.account_online
 import sequovendor.shared.generated.resources.account_payment_card
@@ -46,7 +44,6 @@ import sequovendor.shared.generated.resources.account_payment_mobile_money
 import sequovendor.shared.generated.resources.account_payments_accepted
 import sequovendor.shared.generated.resources.account_profile
 import sequovendor.shared.generated.resources.account_provider
-import sequovendor.shared.generated.resources.account_signed_in
 import sequovendor.shared.generated.resources.account_title
 import sequovendor.shared.generated.resources.shell_sign_out
 import sequovendor.shared.generated.resources.store_weekday
@@ -56,9 +53,8 @@ import sequovendor.shared.generated.resources.store_weekend
 internal fun AccountContent(
     session: VendorSession,
     availability: StoreAvailabilityState,
-    closureNote: String,
     onAvailabilityChange: (Boolean) -> Unit,
-    onClosureNoteChange: (String) -> Unit,
+    onStoreClick: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -137,15 +133,12 @@ internal fun AccountContent(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     KeyValueRow(appText(Res.string.store_weekday), availability.weekdayHours)
                     KeyValueRow(appText(Res.string.store_weekend), availability.weekendHours)
-                    OutlinedTextField(
-                        value = closureNote,
-                        onValueChange = onClosureNoteChange,
-                        label = { Text(appText(Res.string.account_exceptional_closure)) },
-                        placeholder = { Text(appText(Res.string.account_exceptional_closure_placeholder)) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 92.dp),
-                        minLines = 2,
-                    )
-                    Text(appText(Res.string.account_local_notice), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    availability.temporaryClosure?.reason?.takeIf { it.isNotBlank() }?.let {
+                        KeyValueRow(appText(Res.string.account_exceptional_closure), it)
+                    }
+                    OutlinedButton(onClick = onStoreClick, modifier = Modifier.fillMaxWidth()) {
+                        Text(appText(Res.string.account_manage_store))
+                    }
                 }
             }
         }
