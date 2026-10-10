@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
 import dev.orestegabo.sequovendor.model.VendorOrderHandoffMethod
@@ -43,13 +44,20 @@ import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorErrorKind
 import dev.orestegabo.sequovendor.ui.components.VendorErrorPanel
 import sequovendor.shared.generated.resources.Res
+import sequovendor.shared.generated.resources.dashboard_quick_actions
 import sequovendor.shared.generated.resources.order_accept
 import sequovendor.shared.generated.resources.order_commission
 import sequovendor.shared.generated.resources.order_created_at
+import sequovendor.shared.generated.resources.order_detail_back
+import sequovendor.shared.generated.resources.order_detail_title
+import sequovendor.shared.generated.resources.order_financial_summary
 import sequovendor.shared.generated.resources.order_handoff
+import sequovendor.shared.generated.resources.order_id
 import sequovendor.shared.generated.resources.order_item_subtotal
 import sequovendor.shared.generated.resources.order_mark_packed
 import sequovendor.shared.generated.resources.order_net
+import sequovendor.shared.generated.resources.order_package_count_label
+import sequovendor.shared.generated.resources.order_package_count_required
 import sequovendor.shared.generated.resources.order_packages
 import sequovendor.shared.generated.resources.order_packing_due
 import sequovendor.shared.generated.resources.order_reject
@@ -58,7 +66,11 @@ import sequovendor.shared.generated.resources.order_rejection_reason_placeholder
 import sequovendor.shared.generated.resources.order_rejection_reason_required
 import sequovendor.shared.generated.resources.order_rejection_saved_local
 import sequovendor.shared.generated.resources.order_seller_response_due
+import sequovendor.shared.generated.resources.order_sla_overdue
+import sequovendor.shared.generated.resources.order_sla_on_track
+import sequovendor.shared.generated.resources.order_sla_panel
 import sequovendor.shared.generated.resources.order_start_preparation
+import sequovendor.shared.generated.resources.order_status_timeline
 import sequovendor.shared.generated.resources.order_status_accepted
 import sequovendor.shared.generated.resources.order_status_cancelled
 import sequovendor.shared.generated.resources.order_status_handed_off
@@ -67,6 +79,7 @@ import sequovendor.shared.generated.resources.order_status_pending
 import sequovendor.shared.generated.resources.order_status_preparing
 import sequovendor.shared.generated.resources.order_status_rejected
 import sequovendor.shared.generated.resources.order_submit_rejection
+import sequovendor.shared.generated.resources.order_view_detail
 import sequovendor.shared.generated.resources.orders_action_failed
 import sequovendor.shared.generated.resources.orders_detail
 import sequovendor.shared.generated.resources.orders_empty
@@ -100,6 +113,12 @@ internal fun OrdersContent(
     isOffline: Boolean,
     actionInProgressOrderId: String?,
     actionFailed: Boolean,
+    detailOrder: MerchantSubOrder?,
+    detailSla: MerchantSlaInfo?,
+    detailLoading: Boolean,
+    detailOffline: Boolean,
+    onOpenDetail: (MerchantSubOrder) -> Unit,
+    onCloseDetail: () -> Unit,
     onRefresh: () -> Unit,
     onOrderAction: (MerchantSubOrder, VendorOrderAction, String?) -> Unit,
     modifier: Modifier = Modifier,
@@ -107,6 +126,22 @@ internal fun OrdersContent(
     var selectedTab by remember { mutableStateOf(VendorOrdersTab.New) }
     val tabs = VendorOrdersTab.entries
     val visibleOrders = orders.filter { selectedTab.accepts(it) }
+
+    detailOrder?.let { order ->
+        OrderDetailContent(
+            order = order,
+            sla = detailSla,
+            isLoading = detailLoading,
+            isOffline = detailOffline,
+            actionInProgress = actionInProgressOrderId == order.id,
+            actionFailed = actionFailed,
+            onBack = onCloseDetail,
+            onRefresh = { onOpenDetail(order) },
+            onOrderAction = onOrderAction,
+            modifier = modifier,
+        )
+        return
+    }
 
     LazyColumn(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -173,6 +208,7 @@ internal fun OrdersContent(
             OrderCard(
                 order = order,
                 actionInProgress = actionInProgressOrderId == order.id,
+                onOpenDetail = onOpenDetail,
                 onOrderAction = onOrderAction,
             )
         }
@@ -183,6 +219,7 @@ internal fun OrdersContent(
 private fun OrderCard(
     order: MerchantSubOrder,
     actionInProgress: Boolean,
+    onOpenDetail: (MerchantSubOrder) -> Unit,
     onOrderAction: (MerchantSubOrder, VendorOrderAction, String?) -> Unit,
 ) {
     var rejectBoxOpen by remember(order.id) { mutableStateOf(false) }
@@ -227,6 +264,14 @@ private fun OrderCard(
             }
             if (order.status == MerchantSubOrderStatus.REJECTED && !order.rejectionReason.isNullOrBlank()) {
                 KeyValueRow(appText(Res.string.order_rejection_reason), order.rejectionReason)
+            }
+
+            OutlinedButton(
+                onClick = { onOpenDetail(order) },
+                enabled = !actionInProgress,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(appText(Res.string.order_view_detail))
             }
 
             OrderPrimaryActions(order, actionInProgress, onOrderAction)
@@ -286,6 +331,273 @@ private fun OrderCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OrderDetailContent(
+    order: MerchantSubOrder,
+    sla: MerchantSlaInfo?,
+    isLoading: Boolean,
+    isOffline: Boolean,
+    actionInProgress: Boolean,
+    actionFailed: Boolean,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit,
+    onOrderAction: (MerchantSubOrder, VendorOrderAction, String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var rejectBoxOpen by remember(order.id) { mutableStateOf(false) }
+    var rejectionReason by remember(order.id) { mutableStateOf(order.rejectionReason.orEmpty()) }
+    var packageCountText by remember(order.id) { mutableStateOf(order.packageCount.coerceAtLeast(1).toString()) }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(rejectBoxOpen) {
+        if (rejectBoxOpen) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    LazyColumn(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(appText(Res.string.order_detail_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(order.subOrderCode, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                }
+                OutlinedButton(onClick = onBack, enabled = !actionInProgress) {
+                    Text(appText(Res.string.order_detail_back))
+                }
+            }
+        }
+        if (isLoading) {
+            item {
+                VendorCard {
+                    Row(Modifier.fillMaxWidth().padding(18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator()
+                        Text(appText(Res.string.orders_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        if (isOffline) {
+            item {
+                VendorErrorPanel(VendorErrorKind.Offline, onRetry = onRefresh)
+            }
+        }
+        if (actionFailed) {
+            item {
+                VendorCard {
+                    Text(appText(Res.string.orders_action_failed), modifier = Modifier.fillMaxWidth().padding(14.dp), color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(order.subOrderCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(order.status.label(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    }
+                    KeyValueRow(appText(Res.string.order_id), order.orderId ?: "-")
+                    KeyValueRow(appText(Res.string.order_packages), order.packageCount.toString())
+                    if (order.status == MerchantSubOrderStatus.REJECTED && !order.rejectionReason.isNullOrBlank()) {
+                        KeyValueRow(appText(Res.string.order_rejection_reason), order.rejectionReason)
+                    }
+                }
+            }
+        }
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(appText(Res.string.order_financial_summary), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    KeyValueRow(appText(Res.string.order_item_subtotal), order.itemSubtotalCfa.formatCfa())
+                    KeyValueRow(appText(Res.string.order_commission), order.commissionCfa.formatCfa())
+                    KeyValueRow(appText(Res.string.order_net), order.merchantNetCfa.formatCfa())
+                }
+            }
+        }
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(appText(Res.string.order_sla_panel), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    KeyValueRow(appText(Res.string.order_seller_response_due), (sla?.sellerResponseDueAt ?: order.sellerResponseDueAt).formatIsoTimestampOrDash())
+                    KeyValueRow(appText(Res.string.order_packing_due), (sla?.packingDueAt ?: order.packingDueAt).formatIsoTimestampOrDash())
+                    KeyValueRow(
+                        appText(Res.string.order_sla_panel),
+                        if (sla?.isOverdue == true) appText(Res.string.order_sla_overdue) else appText(Res.string.order_sla_on_track),
+                    )
+                }
+            }
+        }
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(appText(Res.string.order_status_timeline), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    KeyValueRow(appText(Res.string.order_created_at), order.createdAt.formatIsoTimestampOrDash())
+                    KeyValueRow(appText(Res.string.order_status_accepted), order.acceptedAt.formatIsoTimestampOrDash())
+                    KeyValueRow(appText(Res.string.order_status_preparing), order.preparingAt.formatIsoTimestampOrDash())
+                    KeyValueRow(appText(Res.string.order_status_packed), order.packedReadyAt.formatIsoTimestampOrDash())
+                    KeyValueRow(appText(Res.string.order_status_handed_off), order.handedToCourierAt.formatIsoTimestampOrDash())
+                }
+            }
+        }
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(appText(Res.string.dashboard_quick_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    OrderDetailActions(
+                        order = order,
+                        actionInProgress = actionInProgress,
+                        packageCountText = packageCountText,
+                        onPackageCountChange = { packageCountText = it.filter(Char::isDigit).take(3) },
+                        rejectBoxOpen = rejectBoxOpen,
+                        rejectionReason = rejectionReason,
+                        onRejectOpen = { rejectBoxOpen = true },
+                        onRejectReasonChange = { rejectionReason = sanitizeRejectionReason(it) },
+                        onHideKeyboard = {
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                        },
+                        focusRequester = focusRequester,
+                        onOrderAction = onOrderAction,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderDetailActions(
+    order: MerchantSubOrder,
+    actionInProgress: Boolean,
+    packageCountText: String,
+    onPackageCountChange: (String) -> Unit,
+    rejectBoxOpen: Boolean,
+    rejectionReason: String,
+    onRejectOpen: () -> Unit,
+    onRejectReasonChange: (String) -> Unit,
+    onHideKeyboard: () -> Unit,
+    focusRequester: FocusRequester,
+    onOrderAction: (MerchantSubOrder, VendorOrderAction, String?) -> Unit,
+) {
+    when (order.status) {
+        MerchantSubOrderStatus.MERCHANT_PENDING -> {
+            Button(
+                onClick = { onOrderAction(order, VendorOrderAction.Accept, null) },
+                enabled = !actionInProgress,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(appText(Res.string.order_accept))
+            }
+            RejectReasonBlock(
+                rejectBoxOpen = rejectBoxOpen,
+                rejectionReason = rejectionReason,
+                actionInProgress = actionInProgress,
+                onRejectOpen = onRejectOpen,
+                onRejectReasonChange = onRejectReasonChange,
+                onHideKeyboard = onHideKeyboard,
+                focusRequester = focusRequester,
+                onSubmit = { onOrderAction(order, VendorOrderAction.Reject, rejectionReason) },
+            )
+        }
+        MerchantSubOrderStatus.ACCEPTED -> {
+            Button(
+                onClick = { onOrderAction(order, VendorOrderAction.StartPreparation, null) },
+                enabled = !actionInProgress,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(appText(Res.string.order_start_preparation))
+            }
+        }
+        MerchantSubOrderStatus.PREPARING -> {
+            OutlinedTextField(
+                value = packageCountText,
+                onValueChange = onPackageCountChange,
+                label = { Text(appText(Res.string.order_package_count_label)) },
+                supportingText = {
+                    if (packageCountText.toIntOrNull()?.takeIf { it > 0 } == null) {
+                        Text(appText(Res.string.order_package_count_required))
+                    }
+                },
+                isError = packageCountText.toIntOrNull()?.takeIf { it > 0 } == null,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onHideKeyboard() }),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(
+                onClick = { onOrderAction(order, VendorOrderAction.MarkPacked, packageCountText) },
+                enabled = !actionInProgress && packageCountText.toIntOrNull()?.takeIf { it > 0 } != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(appText(Res.string.order_mark_packed))
+            }
+        }
+        MerchantSubOrderStatus.PACKED_READY -> {
+            Button(
+                onClick = { onOrderAction(order, VendorOrderAction.Handoff, null) },
+                enabled = !actionInProgress,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(appText(Res.string.order_handoff))
+            }
+        }
+        MerchantSubOrderStatus.HANDED_TO_COURIER,
+        MerchantSubOrderStatus.REJECTED,
+        MerchantSubOrderStatus.CANCELLED,
+        -> Text(appText(Res.string.orders_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun RejectReasonBlock(
+    rejectBoxOpen: Boolean,
+    rejectionReason: String,
+    actionInProgress: Boolean,
+    onRejectOpen: () -> Unit,
+    onRejectReasonChange: (String) -> Unit,
+    onHideKeyboard: () -> Unit,
+    focusRequester: FocusRequester,
+    onSubmit: () -> Unit,
+) {
+    if (!rejectBoxOpen) {
+        OutlinedButton(onClick = onRejectOpen, enabled = !actionInProgress, modifier = Modifier.fillMaxWidth()) {
+            Text(appText(Res.string.order_reject))
+        }
+        return
+    }
+
+    OutlinedTextField(
+        value = rejectionReason,
+        onValueChange = onRejectReasonChange,
+        label = { Text(appText(Res.string.order_rejection_reason)) },
+        placeholder = { Text(appText(Res.string.order_rejection_reason_placeholder)) },
+        supportingText = {
+            Text(
+                appText(Res.string.order_rejection_reason_required)
+                    .replace("%1\$s", rejectionReason.length.toString()),
+            )
+        },
+        isError = rejectionReason.isBlank(),
+        enabled = !actionInProgress,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onHideKeyboard() }),
+        minLines = 2,
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+    )
+    Button(
+        onClick = {
+            onHideKeyboard()
+            onSubmit()
+        },
+        enabled = rejectionReason.isNotBlank() && !actionInProgress,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(appText(Res.string.order_submit_rejection))
     }
 }
 
