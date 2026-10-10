@@ -202,6 +202,17 @@
     <string name="store_closed">Orders paused</string>
     <string name="store_weekday">Weekday</string>
     <string name="store_weekend">Weekend</string>
+    <string name="store_operational_state">Operational state</string>
+    <string name="store_mark_open">Mark open</string>
+    <string name="store_mark_closed">Mark closed</string>
+    <string name="store_temporary_reason">Temporary closure reason</string>
+    <string name="store_temporary_reason_placeholder">Example: closed for inventory until 15:00</string>
+    <string name="store_last_updated">Last updated</string>
+    <string name="store_customer_preview">Customer-facing preview</string>
+    <string name="store_preview_open">Customers can place merchant orders now.</string>
+    <string name="store_preview_closed">Customers see this merchant as temporarily unavailable.</string>
+    <string name="store_preview_closed_reason">Customers see: %1$s</string>
+    <string name="store_local_state_notice">Local state only until merchant store availability endpoints are available.</string>
     <string name="account_title">Merchant account</string>
     <string name="account_detail">Profile, payments, availability, and local operating controls.</string>
     <string name="account_profile">Profile</string>
