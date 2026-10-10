@@ -59,6 +59,10 @@ import dev.orestegabo.sequovendor.core.auth.rememberAuthDeviceId
 import dev.orestegabo.sequovendor.core.auth.rememberAuthSessionStore
 import dev.orestegabo.sequovendor.core.auth.rememberBiometricAuthenticator
 import dev.orestegabo.sequovendor.core.auth.rememberSecureTokenStorage
+import dev.orestegabo.sequovendor.core.catalog.CatalogApiClient
+import dev.orestegabo.sequovendor.core.catalog.FakeVendorCatalogRepository
+import dev.orestegabo.sequovendor.core.catalog.NetworkVendorCatalogRepository
+import dev.orestegabo.sequovendor.core.catalog.VendorCatalogRepository
 import dev.orestegabo.sequovendor.core.fulfillment.FakeMerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentApiClient
 import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentRepository
@@ -178,7 +182,8 @@ internal fun SequoVendorShell(
     var currentSection by remember { mutableStateOf(VendorSection.Dashboard) }
 
     val localOrders = remember { DemoVendorData.orders() }
-    val products = remember { DemoVendorData.products() }
+    val localProducts = remember { DemoVendorData.products() }
+    var products by remember { mutableStateOf(localProducts) }
     var store by remember { mutableStateOf(DemoVendorData.store()) }
     var closureNote by remember { mutableStateOf("") }
     suspend fun clearSavedSessionForDifferentAccount() {
@@ -363,7 +368,32 @@ internal fun SequoVendorShell(
     var detailSla by remember { mutableStateOf<MerchantSlaInfo?>(null) }
     var detailLoading by remember { mutableStateOf(false) }
     var detailOffline by remember { mutableStateOf(false) }
+    var catalogLoading by remember { mutableStateOf(false) }
+    var catalogOffline by remember { mutableStateOf(false) }
     val storeRepository: VendorStoreRepository = remember { LocalVendorStoreRepository(store) }
+    val catalogRepository: VendorCatalogRepository = remember(activeSession.accessToken, activeSession.localMode) {
+        if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
+            FakeVendorCatalogRepository(localProducts)
+        } else {
+            NetworkVendorCatalogRepository(
+                CatalogApiClient(
+                    httpClient = createSequoVendorHttpClient(
+                        accessTokenProvider = { session?.accessToken },
+                        refreshAccessToken = {
+                            val restoredUser = runCatching { authRepository.restoreSavedSession() }.getOrNull()
+                            val refreshedToken = authRepository.getSavedSession()?.accessToken
+                            if (restoredUser != null && !refreshedToken.isNullOrBlank()) {
+                                session = session?.copy(accessToken = refreshedToken)
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    ),
+                ),
+            )
+        }
+    }
     val fulfillmentRepository: MerchantFulfillmentRepository = remember(activeSession.accessToken, activeSession.localMode) {
         if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
             FakeMerchantFulfillmentRepository(localOrders)
@@ -438,6 +468,21 @@ internal fun SequoVendorShell(
             }
         }
         ordersLoading = false
+    }
+
+    suspend fun refreshCatalog(showLoading: Boolean = true) {
+        if (showLoading) catalogLoading = true
+        when (val result = catalogRepository.listProducts(activeSession.merchantId)) {
+            is ApiResult.Success -> {
+                products = result.value.ifEmpty { localProducts }
+                catalogOffline = false
+            }
+            is ApiResult.Failure -> {
+                products = localProducts
+                catalogOffline = true
+            }
+        }
+        catalogLoading = false
     }
 
     fun replaceMerchantOrder(updated: MerchantSubOrder) {
@@ -519,6 +564,10 @@ internal fun SequoVendorShell(
 
     LaunchedEffect(fulfillmentRepository, activeSession.merchantId) {
         refreshMerchantOrders(showLoading = true)
+    }
+
+    LaunchedEffect(catalogRepository, activeSession.merchantId) {
+        refreshCatalog(showLoading = true)
     }
 
     ModalNavigationDrawer(
@@ -603,7 +652,13 @@ internal fun SequoVendorShell(
                             onOrderAction = ::handleOrderAction,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        VendorSection.Catalog -> CatalogContent(products, Modifier.fillMaxSize())
+                        VendorSection.Catalog -> CatalogContent(
+                            products = products,
+                            isLoading = catalogLoading,
+                            isOffline = catalogOffline,
+                            onRefresh = { scope.launch { refreshCatalog(showLoading = true) } },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         VendorSection.Store -> StoreContent(
                             status = store,
                             closureReason = closureNote,
