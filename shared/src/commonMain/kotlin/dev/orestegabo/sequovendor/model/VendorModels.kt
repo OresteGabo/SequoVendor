@@ -200,6 +200,9 @@ data class CatalogProduct(
     val capturedAtLabel: String? = null,
     val stockSummary: String? = null,
     val updatedAt: String? = null,
+    val stockCount: Int? = null,
+    val preparationTimeMinutes: Int? = null,
+    val returnEligible: Boolean = false,
 )
 
 @Serializable
@@ -405,6 +408,9 @@ object DemoVendorData {
             detail = "Prepared morning batch",
             stockSummary = "Available",
             updatedAt = "2026-10-10T09:15:00Z",
+            stockCount = 18,
+            preparationTimeMinutes = 25,
+            returnEligible = false,
         ),
         CatalogProduct(
             id = "prod-demo-002",
@@ -418,6 +424,8 @@ object DemoVendorData {
             detail = "Needs live seller photo",
             stockSummary = "Available",
             updatedAt = "2026-10-09T17:40:00Z",
+            stockCount = 42,
+            returnEligible = true,
         ),
         CatalogProduct(
             id = "prod-demo-003",
@@ -431,6 +439,9 @@ object DemoVendorData {
             detail = "Paused locally until stock returns",
             stockSummary = "Out of stock",
             updatedAt = "2026-10-08T11:00:00Z",
+            stockCount = 0,
+            preparationTimeMinutes = 30,
+            returnEligible = false,
         ),
         CatalogProduct(
             id = "prod-demo-004",
@@ -444,6 +455,8 @@ object DemoVendorData {
             detail = "Local draft only",
             stockSummary = "Draft",
             updatedAt = "2026-10-10T12:00:00Z",
+            stockCount = null,
+            returnEligible = true,
         ),
     )
 
