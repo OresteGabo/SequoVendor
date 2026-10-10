@@ -118,6 +118,17 @@
     <string name="orders_loading">Loading merchant orders...</string>
     <string name="orders_offline">Orders could not be refreshed. Check the connection and try again.</string>
     <string name="orders_action_failed">The order action could not be completed. Try again.</string>
+    <string name="order_view_detail">View detail</string>
+    <string name="order_detail_title">Order detail</string>
+    <string name="order_detail_back">Back to orders</string>
+    <string name="order_status_timeline">Status timeline</string>
+    <string name="order_financial_summary">Financial summary</string>
+    <string name="order_sla_panel">SLA panel</string>
+    <string name="order_id">Order ID</string>
+    <string name="order_package_count_label">Package count</string>
+    <string name="order_package_count_required">Enter a package count before marking ready.</string>
+    <string name="order_sla_on_track">On track</string>
+    <string name="order_sla_overdue">Overdue</string>
     <string name="home_title">Today</string>
     <string name="home_detail">Seller operations at a glance.</string>
     <string name="home_pending">Pending</string>
