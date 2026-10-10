@@ -32,7 +32,7 @@ Important current API rules:
 
 ### Authentication
 
-Implemented in `AuthController.kt` under both `/api/auth` and `/api/v1/auth`; vendor mobile should prefer `/api/auth` to match the current mobile guide.
+Implemented in `AuthController.kt`; vendor mobile uses `/api/auth` to match the current mobile guide.
 
 | Method | Path | Use In Vendor App |
 | --- | --- | --- |
