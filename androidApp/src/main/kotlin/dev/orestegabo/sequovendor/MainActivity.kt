@@ -26,7 +26,6 @@ import dev.orestegabo.sequovendor.core.auth.GoogleSignInFailureReason
 import dev.orestegabo.sequovendor.core.auth.GoogleSignInResult
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.json.JSONObject
 import java.security.SecureRandom
 import kotlin.coroutines.resume
 
@@ -88,10 +87,7 @@ class MainActivity : ComponentActivity() {
                     Log.w(GoogleSignInTag, "Google credential did not include an ID token.")
                     return GoogleSignInResult.Failure(GoogleSignInFailureReason.Unavailable)
                 }
-                Log.d(
-                    GoogleSignInTag,
-                    "Google ID token received for ${googleCredential.id}; length=${googleCredential.idToken.length}; ${googleCredential.idToken.safeGoogleTokenSummary()}",
-                )
+                Log.d(GoogleSignInTag, "Google credential accepted for sign-in.")
                 GoogleSignInResult.Success(
                     idToken = googleCredential.idToken,
                     displayName = googleCredential.displayName,
@@ -190,10 +186,7 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        Log.d(
-            GoogleSignInTag,
-            "Play Services Google ID token received for ${account.email}; length=${idToken.length}; ${idToken.safeGoogleTokenSummary()}",
-        )
+        Log.d(GoogleSignInTag, "Play Services Google credential accepted for sign-in.")
         continuation.resume(
             GoogleSignInResult.Success(
                 idToken = idToken,
@@ -210,14 +203,6 @@ class MainActivity : ComponentActivity() {
         return Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
     }
 
-    private fun String.safeGoogleTokenSummary(): String =
-        runCatching {
-            val payload = split('.').getOrNull(1).orEmpty()
-            val paddedPayload = payload.padEnd(payload.length + (4 - payload.length % 4) % 4, '=')
-            val json = JSONObject(String(Base64.decode(paddedPayload, Base64.URL_SAFE or Base64.NO_WRAP)))
-            "aud=${json.optString("aud", "missing")} iss=${json.optString("iss", "missing")} " +
-                "emailVerified=${json.opt("email_verified") ?: "missing"} subPresent=${json.optString("sub").isNotBlank()}"
-        }.getOrDefault("claims=unreadable")
 }
 
 @Preview
