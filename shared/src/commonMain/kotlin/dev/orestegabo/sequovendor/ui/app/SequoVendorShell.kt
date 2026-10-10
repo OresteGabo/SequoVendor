@@ -67,6 +67,7 @@ import dev.orestegabo.sequovendor.core.fulfillment.FakeMerchantFulfillmentReposi
 import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentApiClient
 import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.fulfillment.NetworkMerchantFulfillmentRepository
+import dev.orestegabo.sequovendor.core.fulfillment.VendorOrderAction
 import dev.orestegabo.sequovendor.core.network.ApiResult
 import dev.orestegabo.sequovendor.core.network.ApiHealthClient
 import dev.orestegabo.sequovendor.core.network.ApiHealthStatus
@@ -102,7 +103,6 @@ import dev.orestegabo.sequovendor.ui.dashboard.DashboardConnectionState
 import dev.orestegabo.sequovendor.ui.dashboard.DashboardContent
 import dev.orestegabo.sequovendor.ui.notifications.NotificationsContent
 import dev.orestegabo.sequovendor.ui.orders.OrdersContent
-import dev.orestegabo.sequovendor.ui.orders.VendorOrderAction
 import dev.orestegabo.sequovendor.ui.store.StoreContent
 import kotlinx.coroutines.launch
 import sequovendor.shared.generated.resources.Res
@@ -676,8 +676,9 @@ internal fun SequoVendorShell(
         action: VendorOrderAction,
         reason: String?,
     ) {
+        if (orderActionInProgressId != null) return
+        orderActionInProgressId = order.id
         scope.launch {
-            orderActionInProgressId = order.id
             orderActionFailed = false
             val result = when (action) {
                 VendorOrderAction.Accept -> fulfillmentRepository.accept(order.id, activeSession.merchantId)
