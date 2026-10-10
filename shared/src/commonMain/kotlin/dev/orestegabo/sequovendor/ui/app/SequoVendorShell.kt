@@ -75,6 +75,7 @@ import dev.orestegabo.sequovendor.feature.auth.AuthScreen
 import dev.orestegabo.sequovendor.feature.settings.AppLanguage
 import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.DemoVendorData
 import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
@@ -485,6 +486,20 @@ internal fun SequoVendorShell(
         catalogLoading = false
     }
 
+    fun saveProductDraft(product: CatalogProduct) {
+        scope.launch {
+            when (val result = catalogRepository.saveLocalDraft(activeSession.merchantId, product)) {
+                is ApiResult.Success -> {
+                    products = products.filterNot { it.id == result.value.id } + result.value
+                    catalogOffline = false
+                }
+                is ApiResult.Failure -> {
+                    catalogOffline = true
+                }
+            }
+        }
+    }
+
     fun replaceMerchantOrder(updated: MerchantSubOrder) {
         dashboardOrders = dashboardOrders.map { order ->
             if (order.id == updated.id) updated else order
@@ -657,6 +672,7 @@ internal fun SequoVendorShell(
                             isLoading = catalogLoading,
                             isOffline = catalogOffline,
                             onRefresh = { scope.launch { refreshCatalog(showLoading = true) } },
+                            onSaveProductDraft = ::saveProductDraft,
                             modifier = Modifier.fillMaxSize(),
                         )
                         VendorSection.Store -> StoreContent(
