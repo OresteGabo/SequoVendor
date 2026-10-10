@@ -96,6 +96,8 @@ Implemented in `CommerceApi.kt` at `/api/catalog`.
 | `GET` | `/api/catalog/products` | optional `category`, `subcategory`, `merchantId`, `includeArchived` | Read products, including seller products by `merchantId`. Archived products require authenticated caller. |
 | `GET` | `/api/catalog/products/{productId}/related` | optional `limit`, max 6 | Read dynamic related products. |
 
+Current SequoVendor implementation uses `GET /api/catalog/products?merchantId={merchantId}&includeArchived=true` for authenticated seller catalog browsing. The Catalog screen supports product search, category filtering, active/draft/paused/archived status filtering, camera verification state, CFA price display, local availability summary, and a last-updated label when the API/model exposes one. If the API read fails or the app is in local/demo mode, the screen uses local mock products only.
+
 ### Notifications
 
 Available per `MOBILE_API_GUIDE.md`; use `appFamily=SEQUO_MERCHANT`.
@@ -148,9 +150,12 @@ Needed mobile-ready seller endpoints:
 - `PATCH /api/merchant/products/{productId}`
 - `POST` or `PATCH /api/merchant/products/{productId}/archive`
 - `PATCH /api/merchant/products/{productId}/availability`
+- `PATCH /api/merchant/products/{productId}/stock`
 - `PATCH /api/merchant/products/{productId}/bargaining`
+- `POST /api/merchant/products/{productId}/photos`
 - seller-scoped stock, option, variant, and return-eligibility updates
 - seller-scoped validation that authenticated merchant owns the product
+- seller-scoped `updatedAt`, stock/out-of-stock, draft, paused, and media verification fields in read responses
 
 ### Product Media And Real-Time Photo Evidence
 
