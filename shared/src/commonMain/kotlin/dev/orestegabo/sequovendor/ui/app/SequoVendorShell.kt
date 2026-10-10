@@ -70,6 +70,7 @@ import dev.orestegabo.sequovendor.feature.settings.AppLanguage
 import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.DemoVendorData
+import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.TemporaryClosure
 import dev.orestegabo.sequovendor.model.VendorSection
@@ -355,6 +356,10 @@ internal fun SequoVendorShell(
     var ordersLoading by remember { mutableStateOf(false) }
     var orderActionInProgressId by remember { mutableStateOf<String?>(null) }
     var orderActionFailed by remember { mutableStateOf(false) }
+    var detailOrder by remember { mutableStateOf<MerchantSubOrder?>(null) }
+    var detailSla by remember { mutableStateOf<MerchantSlaInfo?>(null) }
+    var detailLoading by remember { mutableStateOf(false) }
+    var detailOffline by remember { mutableStateOf(false) }
     val fulfillmentRepository: MerchantFulfillmentRepository = remember(activeSession.accessToken, activeSession.localMode) {
         if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
             FakeMerchantFulfillmentRepository(localOrders)
@@ -416,6 +421,32 @@ internal fun SequoVendorShell(
         }
     }
 
+    suspend fun loadOrderDetail(
+        subOrderId: String,
+        fallback: MerchantSubOrder? = null,
+        showLoading: Boolean = true,
+    ) {
+        if (showLoading) detailLoading = true
+        detailOffline = false
+        fallback?.let { detailOrder = it }
+
+        when (val orderResult = fulfillmentRepository.getSubOrder(subOrderId, activeSession.merchantId)) {
+            is ApiResult.Success -> {
+                detailOrder = orderResult.value
+                replaceMerchantOrder(orderResult.value)
+                when (val slaResult = fulfillmentRepository.getSla(subOrderId, activeSession.merchantId)) {
+                    is ApiResult.Success -> detailSla = slaResult.value
+                    is ApiResult.Failure -> detailSla = orderResult.value.sla
+                }
+            }
+            is ApiResult.Failure -> {
+                detailOffline = true
+                detailSla = fallback?.sla
+            }
+        }
+        detailLoading = false
+    }
+
     fun handleOrderAction(
         order: MerchantSubOrder,
         action: VendorOrderAction,
@@ -430,7 +461,7 @@ internal fun SequoVendorShell(
                 VendorOrderAction.MarkPacked -> fulfillmentRepository.markPacked(
                     subOrderId = order.id,
                     merchantId = activeSession.merchantId,
-                    packageCount = order.packageCount.coerceAtLeast(1),
+                    packageCount = reason?.toIntOrNull()?.coerceAtLeast(1) ?: order.packageCount.coerceAtLeast(1),
                 )
                 VendorOrderAction.Handoff -> fulfillmentRepository.handoff(order.id, activeSession.merchantId)
                 VendorOrderAction.Reject -> fulfillmentRepository.reject(
@@ -442,6 +473,10 @@ internal fun SequoVendorShell(
             when (result) {
                 is ApiResult.Success -> {
                     replaceMerchantOrder(result.value)
+                    if (detailOrder?.id == result.value.id) {
+                        detailOrder = result.value
+                        loadOrderDetail(result.value.id, fallback = result.value, showLoading = false)
+                    }
                     dashboardConnectionState = if (activeSession.localMode) {
                         DashboardConnectionState.LocalFallback
                     } else {
@@ -525,6 +560,20 @@ internal fun SequoVendorShell(
                             isOffline = dashboardConnectionState == DashboardConnectionState.ErrorFallback,
                             actionInProgressOrderId = orderActionInProgressId,
                             actionFailed = orderActionFailed,
+                            detailOrder = detailOrder,
+                            detailSla = detailSla,
+                            detailLoading = detailLoading,
+                            detailOffline = detailOffline,
+                            onOpenDetail = { order ->
+                                scope.launch {
+                                    loadOrderDetail(order.id, fallback = order)
+                                }
+                            },
+                            onCloseDetail = {
+                                detailOrder = null
+                                detailSla = null
+                                detailOffline = false
+                            },
                             onRefresh = { scope.launch { refreshMerchantOrders(showLoading = true) } },
                             onOrderAction = ::handleOrderAction,
                             modifier = Modifier.fillMaxSize(),
