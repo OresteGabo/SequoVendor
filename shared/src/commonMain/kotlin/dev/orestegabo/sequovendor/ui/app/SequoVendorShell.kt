@@ -65,6 +65,8 @@ import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.fulfillment.NetworkMerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.network.ApiResult
 import dev.orestegabo.sequovendor.core.network.createSequoVendorHttpClient
+import dev.orestegabo.sequovendor.core.store.LocalVendorStoreRepository
+import dev.orestegabo.sequovendor.core.store.VendorStoreRepository
 import dev.orestegabo.sequovendor.feature.auth.AuthScreen
 import dev.orestegabo.sequovendor.feature.settings.AppLanguage
 import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
@@ -72,7 +74,6 @@ import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.DemoVendorData
 import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
-import dev.orestegabo.sequovendor.model.TemporaryClosure
 import dev.orestegabo.sequovendor.model.VendorSection
 import dev.orestegabo.sequovendor.model.VendorSession
 import dev.orestegabo.sequovendor.ui.account.AccountContent
@@ -360,6 +361,7 @@ internal fun SequoVendorShell(
     var detailSla by remember { mutableStateOf<MerchantSlaInfo?>(null) }
     var detailLoading by remember { mutableStateOf(false) }
     var detailOffline by remember { mutableStateOf(false) }
+    val storeRepository: VendorStoreRepository = remember { LocalVendorStoreRepository(store) }
     val fulfillmentRepository: MerchantFulfillmentRepository = remember(activeSession.accessToken, activeSession.localMode) {
         if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
             FakeMerchantFulfillmentRepository(localOrders)
@@ -384,16 +386,21 @@ internal fun SequoVendorShell(
         }
     }
     val setStoreOpen: (Boolean) -> Unit = { open ->
-        store = store.copy(
-            open = open,
-            acceptingOrders = open,
-            openStatus = if (open) "OPEN" else "PAUSED",
-            temporaryClosure = if (open || closureNote.isBlank()) null else TemporaryClosure(
-                startsAt = "local",
-                endsAt = "local",
-                reason = closureNote,
-            ),
-        )
+        scope.launch {
+            when (val result = storeRepository.setOpen(activeSession.merchantId, open, closureNote)) {
+                is ApiResult.Success -> store = result.value
+                is ApiResult.Failure -> Unit
+            }
+        }
+    }
+    val setClosureReason: (String) -> Unit = { note ->
+        closureNote = note
+        scope.launch {
+            when (val result = storeRepository.setTemporaryClosureReason(activeSession.merchantId, note)) {
+                is ApiResult.Success -> store = result.value
+                is ApiResult.Failure -> Unit
+            }
+        }
     }
 
     suspend fun refreshMerchantOrders(showLoading: Boolean = true) {
@@ -579,23 +586,20 @@ internal fun SequoVendorShell(
                             modifier = Modifier.fillMaxSize(),
                         )
                         VendorSection.Catalog -> CatalogContent(products, Modifier.fillMaxSize())
-                        VendorSection.Store -> StoreContent(store, Modifier.fillMaxSize())
+                        VendorSection.Store -> StoreContent(
+                            status = store,
+                            closureReason = closureNote,
+                            onOpenChange = setStoreOpen,
+                            onClosureReasonChange = setClosureReason,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         VendorSection.Notifications -> NotificationsContent(dashboardOrders, Modifier.fillMaxSize())
                         VendorSection.Account -> AccountContent(
                             session = activeSession,
                             availability = store,
                             closureNote = closureNote,
                             onAvailabilityChange = setStoreOpen,
-                            onClosureNoteChange = { note ->
-                                closureNote = note
-                                store = store.copy(
-                                    temporaryClosure = if (store.open || note.isBlank()) null else TemporaryClosure(
-                                        startsAt = "local",
-                                        endsAt = "local",
-                                        reason = note,
-                                    ),
-                                )
-                            },
+                            onClosureNoteChange = setClosureReason,
                             onLogout = {
                                 scope.launch {
                                     authRepository.logout()
