@@ -59,11 +59,18 @@ import dev.orestegabo.sequovendor.core.auth.rememberAuthDeviceId
 import dev.orestegabo.sequovendor.core.auth.rememberAuthSessionStore
 import dev.orestegabo.sequovendor.core.auth.rememberBiometricAuthenticator
 import dev.orestegabo.sequovendor.core.auth.rememberSecureTokenStorage
+import dev.orestegabo.sequovendor.core.fulfillment.FakeMerchantFulfillmentRepository
+import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentApiClient
+import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentRepository
+import dev.orestegabo.sequovendor.core.fulfillment.NetworkMerchantFulfillmentRepository
+import dev.orestegabo.sequovendor.core.network.ApiResult
+import dev.orestegabo.sequovendor.core.network.createSequoVendorHttpClient
 import dev.orestegabo.sequovendor.feature.auth.AuthScreen
 import dev.orestegabo.sequovendor.feature.settings.AppLanguage
 import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.DemoVendorData
+import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.TemporaryClosure
 import dev.orestegabo.sequovendor.model.VendorSection
 import dev.orestegabo.sequovendor.model.VendorSession
@@ -73,9 +80,11 @@ import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorChip
 import dev.orestegabo.sequovendor.ui.components.VendorMark
 import dev.orestegabo.sequovendor.ui.chrome.VendorBottomBar
+import dev.orestegabo.sequovendor.ui.dashboard.DashboardConnectionState
 import dev.orestegabo.sequovendor.ui.dashboard.DashboardContent
 import dev.orestegabo.sequovendor.ui.notifications.NotificationsContent
 import dev.orestegabo.sequovendor.ui.orders.OrdersContent
+import dev.orestegabo.sequovendor.ui.orders.VendorOrderAction
 import dev.orestegabo.sequovendor.ui.store.StoreContent
 import kotlinx.coroutines.launch
 import sequovendor.shared.generated.resources.Res
@@ -164,10 +173,18 @@ internal fun SequoVendorShell(
     var googleSignInInProgress by remember { mutableStateOf(false) }
     var currentSection by remember { mutableStateOf(VendorSection.Dashboard) }
 
-    val orders = remember { DemoVendorData.orders() }
+    val localOrders = remember { DemoVendorData.orders() }
     val products = remember { DemoVendorData.products() }
     var store by remember { mutableStateOf(DemoVendorData.store()) }
     var closureNote by remember { mutableStateOf("") }
+    suspend fun clearSavedSessionForDifferentAccount() {
+        if (rememberedUser != null || authRepository.getSavedSession() != null) {
+            runCatching { authRepository.logout() }
+            runCatching { onGoogleSignOut() }
+            rememberedUser = null
+            session = null
+        }
+    }
 
     LaunchedEffect(authRepository) {
         rememberedUser = authRepository.getRememberedUser()
@@ -207,6 +224,7 @@ internal fun SequoVendorShell(
                 scope.launch {
                     emailAuthInProgress = true
                     runCatching {
+                        clearSavedSessionForDifferentAccount()
                         authRepository.loginWithEmail(email, password)
                         authRepository.currentUser()
                     }.onSuccess { user ->
@@ -227,6 +245,7 @@ internal fun SequoVendorShell(
                 scope.launch {
                     emailAuthInProgress = true
                     runCatching {
+                        clearSavedSessionForDifferentAccount()
                         authRepository.signUpWithEmail(email, password, name)
                         authRepository.currentUser()
                     }.onSuccess { user ->
@@ -248,6 +267,7 @@ internal fun SequoVendorShell(
                 scope.launch {
                     googleSignInInProgress = true
                     authNotice = null
+                    clearSavedSessionForDifferentAccount()
                     val result = runCatching { onGoogleSignIn() }
                         .getOrElse { GoogleSignInResult.Failure(GoogleSignInFailureReason.Failed) }
                     when (result) {
@@ -275,12 +295,42 @@ internal fun SequoVendorShell(
                     googleSignInInProgress = false
                 }
             },
-            onAppleLogin = { authNotice = notReadyMessage },
-            onFacebookLogin = { authNotice = notReadyMessage },
-            onWhatsAppLogin = { authNotice = notReadyMessage },
-            onPasskeyLogin = { authNotice = notReadyMessage },
-            onSequoLogin = { authNotice = notReadyMessage },
-            onSkipAuth = { session = DemoVendorData.session() },
+            onAppleLogin = {
+                scope.launch {
+                    clearSavedSessionForDifferentAccount()
+                    authNotice = notReadyMessage
+                }
+            },
+            onFacebookLogin = {
+                scope.launch {
+                    clearSavedSessionForDifferentAccount()
+                    authNotice = notReadyMessage
+                }
+            },
+            onWhatsAppLogin = {
+                scope.launch {
+                    clearSavedSessionForDifferentAccount()
+                    authNotice = notReadyMessage
+                }
+            },
+            onPasskeyLogin = {
+                scope.launch {
+                    clearSavedSessionForDifferentAccount()
+                    authNotice = notReadyMessage
+                }
+            },
+            onSequoLogin = {
+                scope.launch {
+                    clearSavedSessionForDifferentAccount()
+                    authNotice = notReadyMessage
+                }
+            },
+            onSkipAuth = {
+                scope.launch {
+                    clearSavedSessionForDifferentAccount()
+                    session = DemoVendorData.session()
+                }
+            },
             onPrivacyTermsClick = { authNotice = notReadyMessage },
             modifier = Modifier.fillMaxSize(),
         )
@@ -300,6 +350,117 @@ internal fun SequoVendorShell(
     }
 
     val activeSession = requireNotNull(session)
+    var dashboardOrders by remember { mutableStateOf<List<MerchantSubOrder>>(localOrders) }
+    var dashboardConnectionState by remember { mutableStateOf(DashboardConnectionState.LocalFallback) }
+    var ordersLoading by remember { mutableStateOf(false) }
+    var orderActionInProgressId by remember { mutableStateOf<String?>(null) }
+    var orderActionFailed by remember { mutableStateOf(false) }
+    val fulfillmentRepository: MerchantFulfillmentRepository = remember(activeSession.accessToken, activeSession.localMode) {
+        if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
+            FakeMerchantFulfillmentRepository(localOrders)
+        } else {
+            NetworkMerchantFulfillmentRepository(
+                MerchantFulfillmentApiClient(
+                    httpClient = createSequoVendorHttpClient(
+                        accessTokenProvider = { session?.accessToken },
+                        refreshAccessToken = {
+                            val restoredUser = runCatching { authRepository.restoreSavedSession() }.getOrNull()
+                            val refreshedToken = authRepository.getSavedSession()?.accessToken
+                            if (restoredUser != null && !refreshedToken.isNullOrBlank()) {
+                                session = session?.copy(accessToken = refreshedToken)
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    ),
+                ),
+            )
+        }
+    }
+    val setStoreOpen: (Boolean) -> Unit = { open ->
+        store = store.copy(
+            open = open,
+            acceptingOrders = open,
+            openStatus = if (open) "OPEN" else "PAUSED",
+            temporaryClosure = if (open || closureNote.isBlank()) null else TemporaryClosure(
+                startsAt = "local",
+                endsAt = "local",
+                reason = closureNote,
+            ),
+        )
+    }
+
+    suspend fun refreshMerchantOrders(showLoading: Boolean = true) {
+        if (showLoading) ordersLoading = true
+        when (val result = fulfillmentRepository.listSubOrders(activeSession.merchantId)) {
+            is ApiResult.Success -> {
+                dashboardOrders = result.value
+                dashboardConnectionState = if (activeSession.localMode) {
+                    DashboardConnectionState.LocalFallback
+                } else {
+                    DashboardConnectionState.Connected
+                }
+            }
+            is ApiResult.Failure -> {
+                dashboardOrders = localOrders
+                dashboardConnectionState = DashboardConnectionState.ErrorFallback
+            }
+        }
+        ordersLoading = false
+    }
+
+    fun replaceMerchantOrder(updated: MerchantSubOrder) {
+        dashboardOrders = dashboardOrders.map { order ->
+            if (order.id == updated.id) updated else order
+        }
+    }
+
+    fun handleOrderAction(
+        order: MerchantSubOrder,
+        action: VendorOrderAction,
+        reason: String?,
+    ) {
+        scope.launch {
+            orderActionInProgressId = order.id
+            orderActionFailed = false
+            val result = when (action) {
+                VendorOrderAction.Accept -> fulfillmentRepository.accept(order.id, activeSession.merchantId)
+                VendorOrderAction.StartPreparation -> fulfillmentRepository.startPreparation(order.id, activeSession.merchantId)
+                VendorOrderAction.MarkPacked -> fulfillmentRepository.markPacked(
+                    subOrderId = order.id,
+                    merchantId = activeSession.merchantId,
+                    packageCount = order.packageCount.coerceAtLeast(1),
+                )
+                VendorOrderAction.Handoff -> fulfillmentRepository.handoff(order.id, activeSession.merchantId)
+                VendorOrderAction.Reject -> fulfillmentRepository.reject(
+                    subOrderId = order.id,
+                    merchantId = activeSession.merchantId,
+                    reason = reason.orEmpty(),
+                )
+            }
+            when (result) {
+                is ApiResult.Success -> {
+                    replaceMerchantOrder(result.value)
+                    dashboardConnectionState = if (activeSession.localMode) {
+                        DashboardConnectionState.LocalFallback
+                    } else {
+                        DashboardConnectionState.Connected
+                    }
+                }
+                is ApiResult.Failure -> {
+                    orderActionFailed = true
+                    dashboardConnectionState = DashboardConnectionState.ErrorFallback
+                }
+            }
+            orderActionInProgressId = null
+        }
+    }
+
+    LaunchedEffect(fulfillmentRepository, activeSession.merchantId) {
+        refreshMerchantOrders(showLoading = true)
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -348,34 +509,34 @@ internal fun SequoVendorShell(
                     when (currentSection) {
                         VendorSection.Dashboard -> DashboardContent(
                             session = activeSession,
-                            orders = orders,
+                            orders = dashboardOrders,
                             products = products,
                             store = store,
+                            connectionState = dashboardConnectionState,
+                            onStoreOpenChange = setStoreOpen,
                             onOrdersClick = { currentSection = VendorSection.Orders },
                             onCatalogClick = { currentSection = VendorSection.Catalog },
                             onStoreClick = { currentSection = VendorSection.Store },
                             modifier = Modifier.fillMaxSize(),
                         )
-                        VendorSection.Orders -> OrdersContent(orders, Modifier.fillMaxSize())
+                        VendorSection.Orders -> OrdersContent(
+                            orders = dashboardOrders,
+                            isLoading = ordersLoading,
+                            isOffline = dashboardConnectionState == DashboardConnectionState.ErrorFallback,
+                            actionInProgressOrderId = orderActionInProgressId,
+                            actionFailed = orderActionFailed,
+                            onRefresh = { scope.launch { refreshMerchantOrders(showLoading = true) } },
+                            onOrderAction = ::handleOrderAction,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         VendorSection.Catalog -> CatalogContent(products, Modifier.fillMaxSize())
                         VendorSection.Store -> StoreContent(store, Modifier.fillMaxSize())
-                        VendorSection.Notifications -> NotificationsContent(orders, Modifier.fillMaxSize())
+                        VendorSection.Notifications -> NotificationsContent(dashboardOrders, Modifier.fillMaxSize())
                         VendorSection.Account -> AccountContent(
                             session = activeSession,
                             availability = store,
                             closureNote = closureNote,
-                            onAvailabilityChange = { open ->
-                                store = store.copy(
-                                    open = open,
-                                    acceptingOrders = open,
-                                    openStatus = if (open) "OPEN" else "PAUSED",
-                                    temporaryClosure = if (open || closureNote.isBlank()) null else TemporaryClosure(
-                                        startsAt = "local",
-                                        endsAt = "local",
-                                        reason = closureNote,
-                                    ),
-                                )
-                            },
+                            onAvailabilityChange = setStoreOpen,
                             onClosureNoteChange = { note ->
                                 closureNote = note
                                 store = store.copy(
