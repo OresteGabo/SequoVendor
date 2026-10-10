@@ -32,13 +32,15 @@ import dev.orestegabo.sequovendor.model.VendorSection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Storefront
 import sequovendor.shared.generated.resources.Res
 import sequovendor.shared.generated.resources.nav_account
 import sequovendor.shared.generated.resources.nav_catalog
-import sequovendor.shared.generated.resources.nav_home
+import sequovendor.shared.generated.resources.nav_dashboard
+import sequovendor.shared.generated.resources.nav_notifications
 import sequovendor.shared.generated.resources.nav_orders
 import sequovendor.shared.generated.resources.nav_store
 
@@ -80,7 +82,7 @@ internal fun VendorBottomBar(
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                VendorSection.entries.forEach { section ->
+                VendorPrimarySections.forEach { section ->
                     VendorBottomNavItem(
                         modifier = Modifier.weight(1f),
                         section = section,
@@ -92,6 +94,14 @@ internal fun VendorBottomBar(
         }
     }
 }
+
+private val VendorPrimarySections = listOf(
+    VendorSection.Dashboard,
+    VendorSection.Orders,
+    VendorSection.Catalog,
+    VendorSection.Store,
+    VendorSection.Account,
+)
 
 @Composable
 private fun VendorBottomNavItem(
@@ -161,17 +171,19 @@ private fun VendorBottomNavItem(
 
 @Composable
 private fun VendorSection.title(): String = when (this) {
-    VendorSection.Home -> appText(Res.string.nav_home)
+    VendorSection.Dashboard -> appText(Res.string.nav_dashboard)
     VendorSection.Orders -> appText(Res.string.nav_orders)
     VendorSection.Catalog -> appText(Res.string.nav_catalog)
     VendorSection.Store -> appText(Res.string.nav_store)
+    VendorSection.Notifications -> appText(Res.string.nav_notifications)
     VendorSection.Account -> appText(Res.string.nav_account)
 }
 
 private fun VendorSection.icon() = when (this) {
-    VendorSection.Home -> Icons.Filled.Home
+    VendorSection.Dashboard -> Icons.Filled.Home
     VendorSection.Orders -> Icons.Filled.ReceiptLong
     VendorSection.Catalog -> Icons.Filled.Inventory2
     VendorSection.Store -> Icons.Filled.Storefront
+    VendorSection.Notifications -> Icons.Filled.Notifications
     VendorSection.Account -> Icons.Filled.Person
 }
