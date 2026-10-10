@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Sequo Vendor">
+  <rect width="1024" height="1024" rx="230" fill="#16A36A"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="58" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M260 430h504"/>
+    <path d="M318 430l42-150h304l42 150"/>
+    <path d="M286 430c0 56 91 56 91 0c0 56 91 56 91 0c0 56 91 56 91 0c0 56 91 56 91 0c0 56 91 56 91 0"/>
+    <path d="M326 516v210h372V516"/>
+    <path d="M440 726V586h144v140"/>
+    <path d="M330 726h364"/>
+  </g>
+  <path fill="#FFFFFF" d="M586 276c64 4 112 39 135 98c-62 12-119-7-156-53c-24 37-61 61-108 66c10-63 54-105 129-111Z"/>
+</svg>
