@@ -270,6 +270,87 @@ data class TemporaryClosure(
     val reason: String? = null,
 )
 
+@Serializable
+data class VendorNotification(
+    val id: String,
+    val eventId: String,
+    val appFamily: String = "SEQUO_MERCHANT",
+    val eventType: VendorNotificationEventType,
+    val severity: VendorNotificationSeverity = VendorNotificationSeverity.INFO,
+    val title: String,
+    val body: String,
+    val actionUrl: String? = null,
+    val readAt: String? = null,
+    val archivedAt: String? = null,
+    val createdAt: String,
+) {
+    val unread: Boolean
+        get() = readAt == null
+
+    val archived: Boolean
+        get() = archivedAt != null
+}
+
+@Serializable
+enum class VendorNotificationSeverity {
+    INFO,
+    ACTION_REQUIRED,
+    URGENT,
+    SECURITY,
+    FINANCIAL,
+}
+
+@Serializable
+enum class VendorNotificationEventType {
+    ORDER_CREATED,
+    PAYMENT_CONFIRMED,
+    BARGAINING_PROPOSAL_CREATED,
+    BARGAINING_COUNTERED,
+    BARGAINING_ACCEPTED,
+    MERCHANT_ACCEPTED_ORDER,
+    MERCHANT_REJECTED_ORDER,
+    MERCHANT_SLA_WARNING,
+    ORDER_PREPARING,
+    ORDER_READY_FOR_PICKUP,
+    RIDER_MISSION_OFFERED,
+    RIDER_ACCEPTED_MISSION,
+    RIDER_PICKED_UP,
+    RIDER_ARRIVED,
+    DIRECT_DELIVERED,
+    RELAY_PARCEL_DEPOSITED,
+    RELAY_PICKUP_CODE_CREATED,
+    RELAY_PARCEL_DELAYED,
+    RETURN_REQUESTED,
+    RETURN_PIN_CREATED,
+    RETURN_RECEIVED_BY_SEQUO,
+    REFUND_TRIGGERED,
+    MERCHANT_PAYOUT_ELIGIBLE,
+    PAYOUT_SENT,
+    DELIVERY_PROBLEM_REPORTED,
+    MISSING_DEPOT_BLOCKED_TOUR,
+}
+
+@Serializable
+data class VendorNotificationPreference(
+    val id: String? = null,
+    val appFamily: String = "SEQUO_MERCHANT",
+    val eventType: VendorNotificationPreferenceEventType = VendorNotificationPreferenceEventType.ALL,
+    val pushEnabled: Boolean = true,
+    val inAppEnabled: Boolean = true,
+    val smsEnabled: Boolean = false,
+    val quietHoursStart: String? = null,
+    val quietHoursEnd: String? = null,
+)
+
+@Serializable
+enum class VendorNotificationPreferenceEventType {
+    ALL,
+    ORDER_CREATED,
+    MERCHANT_SLA_WARNING,
+    ORDER_READY_FOR_PICKUP,
+    DELIVERY_PROBLEM_REPORTED,
+}
+
 sealed interface VendorUiError {
     data object Offline : VendorUiError
     data object SessionExpired : VendorUiError
@@ -457,6 +538,37 @@ object DemoVendorData {
             updatedAt = "2026-10-10T12:00:00Z",
             stockCount = null,
             returnEligible = true,
+        ),
+    )
+
+    fun notifications() = listOf(
+        VendorNotification(
+            id = "notif-demo-new-order",
+            eventId = "event-demo-new-order",
+            eventType = VendorNotificationEventType.ORDER_CREATED,
+            severity = VendorNotificationSeverity.ACTION_REQUIRED,
+            title = "New merchant order",
+            body = "SQ-M-1001 is waiting for your response.",
+            createdAt = "2026-10-10T09:20:00Z",
+        ),
+        VendorNotification(
+            id = "notif-demo-sla",
+            eventId = "event-demo-sla",
+            eventType = VendorNotificationEventType.MERCHANT_SLA_WARNING,
+            severity = VendorNotificationSeverity.URGENT,
+            title = "SLA warning",
+            body = "A preparation deadline needs attention.",
+            createdAt = "2026-10-10T10:15:00Z",
+        ),
+        VendorNotification(
+            id = "notif-demo-delivery",
+            eventId = "event-demo-delivery",
+            eventType = VendorNotificationEventType.DELIVERY_PROBLEM_REPORTED,
+            severity = VendorNotificationSeverity.ACTION_REQUIRED,
+            title = "Delivery problem reported",
+            body = "Support may contact the merchant for package details.",
+            createdAt = "2026-10-10T12:30:00Z",
+            readAt = "2026-10-10T12:35:00Z",
         ),
     )
 
