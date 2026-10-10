@@ -9,10 +9,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +42,27 @@ import sequovendor.shared.generated.resources.catalog_camera_verified
 import sequovendor.shared.generated.resources.catalog_category_all
 import sequovendor.shared.generated.resources.catalog_detail
 import sequovendor.shared.generated.resources.catalog_empty
+import sequovendor.shared.generated.resources.catalog_edit
+import sequovendor.shared.generated.resources.catalog_editor_availability
+import sequovendor.shared.generated.resources.catalog_editor_bargaining_disabled
+import sequovendor.shared.generated.resources.catalog_editor_cancel
+import sequovendor.shared.generated.resources.catalog_editor_category
+import sequovendor.shared.generated.resources.catalog_editor_detail
+import sequovendor.shared.generated.resources.catalog_editor_food_policy
+import sequovendor.shared.generated.resources.catalog_editor_local_badge
+import sequovendor.shared.generated.resources.catalog_editor_name
+import sequovendor.shared.generated.resources.catalog_editor_original_price
+import sequovendor.shared.generated.resources.catalog_editor_photo_policy
+import sequovendor.shared.generated.resources.catalog_editor_photo_status
+import sequovendor.shared.generated.resources.catalog_editor_prep_time
+import sequovendor.shared.generated.resources.catalog_editor_price
+import sequovendor.shared.generated.resources.catalog_editor_return_eligible
+import sequovendor.shared.generated.resources.catalog_editor_save
+import sequovendor.shared.generated.resources.catalog_editor_saved
+import sequovendor.shared.generated.resources.catalog_editor_stock_count
+import sequovendor.shared.generated.resources.catalog_editor_stock_state
+import sequovendor.shared.generated.resources.catalog_editor_subcategory
+import sequovendor.shared.generated.resources.catalog_editor_title
 import sequovendor.shared.generated.resources.catalog_filter_all
 import sequovendor.shared.generated.resources.catalog_last_updated
 import sequovendor.shared.generated.resources.catalog_loading
@@ -61,11 +85,14 @@ internal fun CatalogContent(
     isLoading: Boolean,
     isOffline: Boolean,
     onRefresh: () -> Unit,
+    onSaveProductDraft: (CatalogProduct) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<CatalogStatusFilter?>(null) }
+    var editingProduct by remember { mutableStateOf<CatalogProduct?>(null) }
+    var localSavedNotice by remember { mutableStateOf(false) }
     val categories = remember(products) {
         products.mapNotNull { it.category?.takeIf(String::isNotBlank) }.distinct().sorted()
     }
@@ -84,6 +111,23 @@ internal fun CatalogContent(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(appText(Res.string.catalog_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(appText(Res.string.catalog_detail), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (localSavedNotice) {
+                    Text(appText(Res.string.catalog_editor_saved), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        editingProduct?.let { product ->
+            item {
+                ProductEditorCard(
+                    product = product,
+                    onCancel = { editingProduct = null },
+                    onSave = { updated ->
+                        onSaveProductDraft(updated)
+                        editingProduct = null
+                        localSavedNotice = true
+                    },
+                )
             }
         }
 
@@ -169,13 +213,13 @@ internal fun CatalogContent(
         }
 
         items(filteredProducts, key = { it.id }) { product ->
-            ProductCard(product)
+            ProductCard(product, onEdit = { editingProduct = product })
         }
     }
 }
 
 @Composable
-private fun ProductCard(product: CatalogProduct) {
+private fun ProductCard(product: CatalogProduct, onEdit: () -> Unit) {
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
@@ -198,8 +242,97 @@ private fun ProductCard(product: CatalogProduct) {
                 }
             }
             KeyValueRow(appText(Res.string.catalog_price), product.priceCfa.formatCfaOrDash())
-            KeyValueRow(appText(Res.string.catalog_stock), product.status.stockLabel())
+            KeyValueRow(appText(Res.string.catalog_stock), product.stockSummary ?: product.status.stockLabel())
             KeyValueRow(appText(Res.string.catalog_last_updated), product.updatedAt.formatIsoTimestampOrDash())
+            OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+                Text(appText(Res.string.catalog_edit))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductEditorCard(
+    product: CatalogProduct,
+    onCancel: () -> Unit,
+    onSave: (CatalogProduct) -> Unit,
+) {
+    var name by remember(product.id) { mutableStateOf(product.name) }
+    var category by remember(product.id) { mutableStateOf(product.category.orEmpty()) }
+    var subcategory by remember(product.id) { mutableStateOf(product.subcategory.orEmpty()) }
+    var detail by remember(product.id) { mutableStateOf(product.detail.orEmpty()) }
+    var price by remember(product.id) { mutableStateOf(product.priceCfa?.toString().orEmpty()) }
+    var originalPrice by remember(product.id) { mutableStateOf(product.originalPriceCfa?.toString().orEmpty()) }
+    var available by remember(product.id) { mutableStateOf(product.status == CatalogProductStatus.ACTIVE) }
+    var stockCount by remember(product.id) { mutableStateOf(product.stockCount?.toString().orEmpty()) }
+    val defaultStockState = product.stockSummary ?: product.status.stockLabel()
+    var stockState by remember(product.id, defaultStockState) { mutableStateOf(defaultStockState) }
+    var prepTime by remember(product.id) { mutableStateOf(product.preparationTimeMinutes?.toString().orEmpty()) }
+    var returnEligible by remember(product.id) { mutableStateOf(product.returnEligible) }
+    val canSave = name.isNotBlank()
+
+    VendorCard {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(appText(Res.string.catalog_editor_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(appText(Res.string.catalog_editor_local_badge), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+                Switch(checked = available, onCheckedChange = { available = it })
+            }
+            Text(appText(Res.string.catalog_editor_photo_policy), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(appText(Res.string.catalog_editor_food_policy), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(value = name, onValueChange = { name = it.take(180) }, label = { Text(appText(Res.string.catalog_editor_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = category, onValueChange = { category = sanitizeCatalogText(it, 80) }, label = { Text(appText(Res.string.catalog_editor_category)) }, singleLine = true, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = subcategory, onValueChange = { subcategory = sanitizeCatalogText(it, 80) }, label = { Text(appText(Res.string.catalog_editor_subcategory)) }, singleLine = true, modifier = Modifier.weight(1f))
+            }
+            OutlinedTextField(value = detail, onValueChange = { detail = it.take(500) }, label = { Text(appText(Res.string.catalog_editor_detail)) }, minLines = 2, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = price, onValueChange = { price = sanitizeDigits(it, 9) }, label = { Text(appText(Res.string.catalog_editor_price)) }, singleLine = true, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = originalPrice, onValueChange = { originalPrice = sanitizeDigits(it, 9) }, label = { Text(appText(Res.string.catalog_editor_original_price)) }, singleLine = true, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = stockCount, onValueChange = { stockCount = sanitizeDigits(it, 6) }, label = { Text(appText(Res.string.catalog_editor_stock_count)) }, singleLine = true, modifier = Modifier.weight(1f))
+                OutlinedTextField(value = stockState, onValueChange = { stockState = sanitizeCatalogText(it, 80) }, label = { Text(appText(Res.string.catalog_editor_stock_state)) }, singleLine = true, modifier = Modifier.weight(1f))
+            }
+            OutlinedTextField(value = prepTime, onValueChange = { prepTime = sanitizeDigits(it, 4) }, label = { Text(appText(Res.string.catalog_editor_prep_time)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            KeyValueRow(appText(Res.string.catalog_editor_availability), if (available) appText(Res.string.catalog_available) else appText(Res.string.catalog_paused))
+            KeyValueRow(appText(Res.string.catalog_editor_photo_status), if (product.cameraVerified) appText(Res.string.catalog_camera_verified) else appText(Res.string.catalog_needs_photo))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = returnEligible, onCheckedChange = { returnEligible = it })
+                Text(appText(Res.string.catalog_editor_return_eligible))
+            }
+            Text(appText(Res.string.catalog_editor_bargaining_disabled), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
+                    Text(appText(Res.string.catalog_editor_cancel))
+                }
+                Button(
+                    onClick = {
+                        onSave(
+                            product.copy(
+                                name = name.trim(),
+                                category = category.trim().ifBlank { null },
+                                subcategory = subcategory.trim().ifBlank { null },
+                                detail = detail.trim().ifBlank { null },
+                                priceCfa = price.toIntOrNull(),
+                                originalPriceCfa = originalPrice.toIntOrNull(),
+                                status = if (available) CatalogProductStatus.ACTIVE else CatalogProductStatus.PAUSED,
+                                stockCount = stockCount.toIntOrNull(),
+                                stockSummary = stockState.trim().ifBlank { null },
+                                preparationTimeMinutes = prepTime.toIntOrNull(),
+                                returnEligible = returnEligible,
+                                bargainingEnabled = false,
+                            ),
+                        )
+                    },
+                    enabled = canSave,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(appText(Res.string.catalog_editor_save))
+                }
+            }
         }
     }
 }
@@ -249,3 +382,9 @@ private fun CatalogProductStatus.stockLabel(): String =
         CatalogProductStatus.DRAFT -> appText(Res.string.catalog_paused)
         CatalogProductStatus.ARCHIVED -> appText(Res.string.catalog_status_archived)
     }
+
+private fun sanitizeDigits(input: String, maxLength: Int): String =
+    input.filter(Char::isDigit).take(maxLength)
+
+private fun sanitizeCatalogText(input: String, maxLength: Int): String =
+    input.filter { it.isLetterOrDigit() || it.isWhitespace() || it in "-_.'/,&()" }.take(maxLength)
