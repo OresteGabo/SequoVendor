@@ -45,6 +45,9 @@ fun CatalogProductDto.toDomain(): CatalogProduct =
         capturedAtLabel = capturedAtLabel,
         stockSummary = status.toStockSummary(),
         updatedAt = capturedAtLabel,
+        stockCount = null,
+        preparationTimeMinutes = null,
+        returnEligible = false,
     )
 
 private fun String.toCatalogProductStatus(): CatalogProductStatus =
