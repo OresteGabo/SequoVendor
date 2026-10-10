@@ -24,6 +24,7 @@ data class MerchantSubOrderDto(
     val rejectionReason: String? = null,
     val sellerResponseDueAt: String? = null,
     val packingDueAt: String? = null,
+    val createdAt: String? = null,
     val updatedAt: String,
 )
 
@@ -73,6 +74,7 @@ fun MerchantSubOrderDto.toDomain(): MerchantSubOrder =
         rejectionReason = rejectionReason,
         sellerResponseDueAt = sellerResponseDueAt,
         packingDueAt = packingDueAt,
+        createdAt = createdAt,
         updatedAt = updatedAt,
     )
 
