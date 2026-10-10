@@ -15,12 +15,20 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
@@ -104,10 +112,20 @@ private fun OrderCard(order: MerchantSubOrder) {
     var rejectBoxOpen by remember(order.id) { mutableStateOf(false) }
     var rejectionReason by remember(order.id) { mutableStateOf(order.rejectionReason.orEmpty()) }
     var rejectionSubmitted by remember(order.id) { mutableStateOf(order.rejectionReason?.isNotBlank() == true) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val canReject = order.status in setOf(
         MerchantSubOrderStatus.MERCHANT_PENDING,
         MerchantSubOrderStatus.ACCEPTED,
     )
+
+    LaunchedEffect(rejectBoxOpen) {
+        if (rejectBoxOpen) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
 
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -133,7 +151,7 @@ private fun OrderCard(order: MerchantSubOrder) {
                     OutlinedTextField(
                         value = rejectionReason,
                         onValueChange = {
-                            rejectionReason = it
+                            rejectionReason = sanitizeRejectionReason(it)
                             rejectionSubmitted = false
                         },
                         label = { Text(appText(Res.string.order_rejection_reason)) },
@@ -144,15 +162,27 @@ private fun OrderCard(order: MerchantSubOrder) {
                                     appText(Res.string.order_rejection_saved_local)
                                 } else {
                                     appText(Res.string.order_rejection_reason_required)
+                                        .replace("%1\$s", rejectionReason.length.toString())
                                 }
                             )
                         },
                         isError = rejectionReason.isBlank() && !rejectionSubmitted,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                            },
+                        ),
                         minLines = 2,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                     )
                     Button(
-                        onClick = { rejectionSubmitted = true },
+                        onClick = {
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                            rejectionSubmitted = true
+                        },
                         enabled = rejectionReason.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -163,6 +193,18 @@ private fun OrderCard(order: MerchantSubOrder) {
         }
     }
 }
+
+private fun sanitizeRejectionReason(input: String): String =
+    input
+        .filter { it.isAllowedRejectionReasonChar() }
+        .take(MaxRejectionReasonLength)
+
+private fun Char.isAllowedRejectionReasonChar(): Boolean =
+    isLetterOrDigit() ||
+        isWhitespace() ||
+        this in setOf('.', ',', '\'', '"', '’', '-', '/', '!', '?', ':', ';', '(', ')')
+
+private const val MaxRejectionReasonLength = 100
 
 @Composable
 private fun MerchantSubOrderStatus.label(): String = when (this) {
