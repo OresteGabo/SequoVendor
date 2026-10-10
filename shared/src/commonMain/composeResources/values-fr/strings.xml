@@ -133,7 +133,7 @@
     <string name="order_reject">Refuser</string>
     <string name="order_rejection_reason">Raison du refus</string>
     <string name="order_rejection_reason_placeholder">Exemple : article indisponible, boutique fermee ou prix change</string>
-    <string name="order_rejection_reason_required">Ajoutez une courte raison avant de refuser.</string>
+    <string name="order_rejection_reason_required">Raison requise - %1$s/100</string>
     <string name="order_submit_rejection">Valider le refus</string>
     <string name="order_rejection_saved_local">Raison enregistree localement jusqu'a la connexion de l'endpoint refus.</string>
     <string name="catalog_title">Lecture catalogue</string>
