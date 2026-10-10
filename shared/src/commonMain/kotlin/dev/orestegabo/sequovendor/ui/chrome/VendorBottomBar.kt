@@ -86,7 +86,7 @@ internal fun VendorBottomBar(
                     VendorBottomNavItem(
                         modifier = Modifier.weight(1f),
                         section = section,
-                        selected = currentSection == section,
+                        selected = currentSection == section || (currentSection == VendorSection.Store && section == VendorSection.Account),
                         onClick = { onSectionSelected(section) },
                     )
                 }
@@ -99,7 +99,6 @@ private val VendorPrimarySections = listOf(
     VendorSection.Dashboard,
     VendorSection.Orders,
     VendorSection.Catalog,
-    VendorSection.Store,
     VendorSection.Account,
 )
 
