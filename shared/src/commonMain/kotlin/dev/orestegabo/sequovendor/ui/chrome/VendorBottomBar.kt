@@ -30,11 +30,15 @@ import dev.orestegabo.sequovendor.core.designsystem.component.SequoShapes
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.VendorSection
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Storefront
 import sequovendor.shared.generated.resources.Res
+import sequovendor.shared.generated.resources.nav_account
 import sequovendor.shared.generated.resources.nav_catalog
+import sequovendor.shared.generated.resources.nav_home
 import sequovendor.shared.generated.resources.nav_orders
 import sequovendor.shared.generated.resources.nav_store
 
@@ -157,13 +161,17 @@ private fun VendorBottomNavItem(
 
 @Composable
 private fun VendorSection.title(): String = when (this) {
+    VendorSection.Home -> appText(Res.string.nav_home)
     VendorSection.Orders -> appText(Res.string.nav_orders)
     VendorSection.Catalog -> appText(Res.string.nav_catalog)
     VendorSection.Store -> appText(Res.string.nav_store)
+    VendorSection.Account -> appText(Res.string.nav_account)
 }
 
 private fun VendorSection.icon() = when (this) {
+    VendorSection.Home -> Icons.Filled.Home
     VendorSection.Orders -> Icons.Filled.ReceiptLong
     VendorSection.Catalog -> Icons.Filled.Inventory2
     VendorSection.Store -> Icons.Filled.Storefront
+    VendorSection.Account -> Icons.Filled.Person
 }
