@@ -133,7 +133,7 @@
     <string name="order_reject">Reject</string>
     <string name="order_rejection_reason">Rejection reason</string>
     <string name="order_rejection_reason_placeholder">Example: item unavailable, shop closed, or price changed</string>
-    <string name="order_rejection_reason_required">Add a short reason before rejecting.</string>
+    <string name="order_rejection_reason_required">Reason required - %1$s/100</string>
     <string name="order_submit_rejection">Submit rejection</string>
     <string name="order_rejection_saved_local">Reason saved locally until the reject endpoint is connected.</string>
     <string name="catalog_title">Catalog read</string>
