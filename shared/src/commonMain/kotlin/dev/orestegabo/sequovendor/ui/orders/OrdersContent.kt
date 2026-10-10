@@ -33,6 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.core.fulfillment.VendorOrderAction
+import dev.orestegabo.sequovendor.core.fulfillment.canRejectByMerchant
+import dev.orestegabo.sequovendor.core.fulfillment.primaryVendorAction
 import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
@@ -97,14 +100,6 @@ import sequovendor.shared.generated.resources.orders_tab_preparing
 import sequovendor.shared.generated.resources.orders_tab_ready
 import sequovendor.shared.generated.resources.orders_tab_rejected_cancelled
 import sequovendor.shared.generated.resources.orders_title
-
-internal enum class VendorOrderAction {
-    Accept,
-    StartPreparation,
-    MarkPacked,
-    Handoff,
-    Reject,
-}
 
 @Composable
 internal fun OrdersContent(
@@ -228,10 +223,7 @@ private fun OrderCard(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-    val canReject = order.status in setOf(
-        MerchantSubOrderStatus.MERCHANT_PENDING,
-        MerchantSubOrderStatus.ACCEPTED,
-    )
+    val canReject = order.status.canRejectByMerchant()
 
     LaunchedEffect(rejectBoxOpen) {
         if (rejectBoxOpen) {
@@ -607,16 +599,7 @@ private fun OrderPrimaryActions(
     actionInProgress: Boolean,
     onOrderAction: (MerchantSubOrder, VendorOrderAction, String?) -> Unit,
 ) {
-    val action = when (order.status) {
-        MerchantSubOrderStatus.MERCHANT_PENDING -> VendorOrderAction.Accept to appText(Res.string.order_accept)
-        MerchantSubOrderStatus.ACCEPTED -> VendorOrderAction.StartPreparation to appText(Res.string.order_start_preparation)
-        MerchantSubOrderStatus.PREPARING -> VendorOrderAction.MarkPacked to appText(Res.string.order_mark_packed)
-        MerchantSubOrderStatus.PACKED_READY -> VendorOrderAction.Handoff to appText(Res.string.order_handoff)
-        MerchantSubOrderStatus.HANDED_TO_COURIER,
-        MerchantSubOrderStatus.REJECTED,
-        MerchantSubOrderStatus.CANCELLED,
-        -> null
-    } ?: return
+    val action = order.status.primaryVendorAction()?.let { it to it.label() } ?: return
 
     Button(
         onClick = { onOrderAction(order, action.first, null) },
@@ -625,6 +608,15 @@ private fun OrderPrimaryActions(
     ) {
         Text(action.second)
     }
+}
+
+@Composable
+private fun VendorOrderAction.label(): String = when (this) {
+    VendorOrderAction.Accept -> appText(Res.string.order_accept)
+    VendorOrderAction.StartPreparation -> appText(Res.string.order_start_preparation)
+    VendorOrderAction.MarkPacked -> appText(Res.string.order_mark_packed)
+    VendorOrderAction.Handoff -> appText(Res.string.order_handoff)
+    VendorOrderAction.Reject -> appText(Res.string.order_reject)
 }
 
 private fun sanitizeRejectionReason(input: String): String =
