@@ -6,14 +6,16 @@ data class VendorSession(
     val merchantId: String,
     val displayName: String,
     val accessToken: String? = null,
+    val authProvider: String? = null,
     val localMode: Boolean = true,
 )
 
 enum class VendorSection {
-    Home,
+    Dashboard,
     Orders,
     Catalog,
     Store,
+    Notifications,
     Account,
 }
 
