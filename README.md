@@ -165,14 +165,17 @@ Customer rules require seller-specific real-time camera photos. Missing vendor-r
 
 Hub opening-hours endpoints exist for relay/hub apps, but merchant store hours/status are not available as a seller contract.
 
+Current SequoVendor implementation: the Store screen uses a `VendorStoreRepository` interface with a `LocalVendorStoreRepository` fake/local implementation. It lets a seller mark the store open/closed, enter a temporary closure reason, see a last-updated local marker, and preview the customer-facing availability message. It does not call `/api/hub/opening-hours` or `/api/hub/control-state` because those routes are relay/hub scoped, not merchant scoped.
+
 Needed:
 
-- `GET /api/merchant/store-settings`
-- `PUT /api/merchant/store-settings`
+- `GET /api/merchant/store-availability?merchantId=...` or `GET /api/merchant/store-settings?merchantId=...`
+- `PUT /api/merchant/store-availability` or `PUT /api/merchant/store-settings`
 - open/closed state
 - weekly hours and temporary exceptions
 - prep time/closure note
 - server-generated effective availability state
+- merchant ownership/scope validation for owner and staff users
 
 ### Merchant Staff And Merchant Selection
 
