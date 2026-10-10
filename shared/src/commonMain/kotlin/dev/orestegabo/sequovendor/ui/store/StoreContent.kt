@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.core.store.isValidOpeningHours
+import dev.orestegabo.sequovendor.core.store.isValidTimeRange
 import dev.orestegabo.sequovendor.model.OpeningHoursDay
 import dev.orestegabo.sequovendor.model.OpeningHoursException
 import dev.orestegabo.sequovendor.model.StoreStatus
@@ -45,6 +47,7 @@ import sequovendor.shared.generated.resources.store_day_wednesday
 import sequovendor.shared.generated.resources.store_detail
 import sequovendor.shared.generated.resources.store_exception_closed
 import sequovendor.shared.generated.resources.store_exception_date
+import sequovendor.shared.generated.resources.store_exception_date_placeholder
 import sequovendor.shared.generated.resources.store_exception_open
 import sequovendor.shared.generated.resources.store_exception_override
 import sequovendor.shared.generated.resources.store_hours_invalid
@@ -285,7 +288,7 @@ private fun TemporaryExceptionsCard(
                 value = date,
                 onValueChange = { date = sanitizeDateInput(it) },
                 label = { Text(appText(Res.string.store_exception_date)) },
-                placeholder = { Text("YYYY-MM-DD") },
+                placeholder = { Text(appText(Res.string.store_exception_date_placeholder)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -371,19 +374,6 @@ private fun copyMondayToWeekdays(hours: List<OpeningHoursDay>): List<OpeningHour
             day
         }
     }
-}
-
-private fun OpeningHoursDay.isValidOpeningHours(): Boolean =
-    closed || isValidTimeRange(opensAt, closesAt)
-
-private fun isValidTimeRange(opensAt: String, closesAt: String): Boolean =
-    isValidTime(opensAt) && isValidTime(closesAt) && opensAt < closesAt
-
-private fun isValidTime(value: String): Boolean {
-    if (!Regex("\\d{2}:\\d{2}").matches(value)) return false
-    val hour = value.substring(0, 2).toIntOrNull() ?: return false
-    val minute = value.substring(3, 5).toIntOrNull() ?: return false
-    return hour in 0..23 && minute in 0..59
 }
 
 private fun defaultWeeklyHours(): List<OpeningHoursDay> = listOf(
