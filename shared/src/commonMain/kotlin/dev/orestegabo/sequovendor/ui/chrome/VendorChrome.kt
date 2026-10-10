@@ -24,7 +24,9 @@ import sequovendor.shared.generated.resources.app_name
 import sequovendor.shared.generated.resources.app_subtitle
 import sequovendor.shared.generated.resources.language_en
 import sequovendor.shared.generated.resources.language_fr
+import sequovendor.shared.generated.resources.nav_account
 import sequovendor.shared.generated.resources.nav_catalog
+import sequovendor.shared.generated.resources.nav_home
 import sequovendor.shared.generated.resources.nav_orders
 import sequovendor.shared.generated.resources.nav_store
 import sequovendor.shared.generated.resources.theme_dark
@@ -108,9 +110,11 @@ internal fun VendorNavigationBar(
 
 @Composable
 private fun VendorSection.label(): String = when (this) {
+    VendorSection.Home -> appText(Res.string.nav_home)
     VendorSection.Orders -> appText(Res.string.nav_orders)
     VendorSection.Catalog -> appText(Res.string.nav_catalog)
     VendorSection.Store -> appText(Res.string.nav_store)
+    VendorSection.Account -> appText(Res.string.nav_account)
 }
 
 @Composable
