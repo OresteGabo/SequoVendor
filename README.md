@@ -12,6 +12,39 @@ This app must follow the customer app product rules from `../Sequo`: operational
 - Provide catalog visibility and draft/editor surfaces without inventing seller write contracts that the backend has not safely exposed.
 - Prepare for store status, hours, notification, and settlement workflows behind repository interfaces once the API is mobile-ready.
 
+## Current Implementation Status
+
+Implemented in the app:
+
+- Production-style Kotlin Multiplatform app shell inspired by the Sequo customer app: splash, onboarding, drawer/settings language and theme controls, operational bottom navigation, dense seller dashboard, safe error panels, and EN/FR localized strings.
+- Auth flow with Google social sign-in, email sign-in/sign-up surfaces, secure token/session storage, refresh-session restore, logout, `/api/auth/me`, merchant-role gating, and a clear local/demo fallback when backend credentials or merchant scope are unavailable.
+- Network layer using `/api`, JSON content type, bearer auth, one refresh-and-retry attempt on `401`, `Retry-After` parsing for `429`, typed safe failures, and no raw backend debug messages in UI.
+- Dashboard that loads merchant sub-orders from `GET /api/merchant/sub-orders?merchantId=...` when authenticated, derives pending/accepted/preparing/ready counts, shows SLA warnings, recent orders, quick actions, store state, and API connection state.
+- Orders list with localized tabs/filters for new, accepted, preparing, ready, completed, and rejected/cancelled orders. Cards show code, status, CFA subtotal/net/commission, timestamps, SLA deadlines, package count, and safe next actions.
+- Order detail with lifecycle timeline, financial summary, SLA panel from `GET /api/merchant/sub-orders/{id}/sla`, package count entry, rejection reason handling, duplicate-submit protection, and action calls to the active merchant fulfillment endpoints.
+- Store availability and weekly opening-hours UI behind `VendorStoreRepository`, including open/closed toggle, temporary closure reason, customer-facing preview, weekday rows, copy-Monday-to-weekdays, temporary exceptions, and validation.
+- Catalog browse/editor UI for seller products using public catalog reads by `merchantId`, with search, category/status filters, camera-photo indicator, CFA price, stock/availability summary, last-updated labels, and local draft saves only.
+- Notifications inbox/preferences using `SEQUO_MERCHANT` through `/api/notifications/...`, including read/archive/unarchive and push/in-app/SMS preference controls where the API supports them.
+- Account/settings with authenticated user display, merchant context, language EN/FR, theme system/light/dark, logout, API health via `/actuator/health`, notifications entry, payments accepted, availability entry, and legal/privacy copy.
+- Focused Android host tests for status/action mapping, safe error mapping, CFA formatting, opening-hours validation, order action request bodies, and auth refresh retry behavior.
+
+Mocked or local for now:
+
+- Local/demo mode uses `DemoVendorData` and fake repositories for auth fallback, orders, catalog, notifications, and store state when a real authenticated merchant session is unavailable.
+- Store open/closed state, temporary closure reason, weekly hours, and temporary exceptions are local-only because no merchant-scoped store availability endpoint exists yet.
+- Catalog editor saves local drafts through the repository interface. It intentionally does not call global catalog write routes because seller-scoped product management is not mobile-ready.
+- Product media/camera verification is represented in UI/model state only; no mobile camera upload endpoint is called.
+- Notification device registration support exists in the API client, but actual Firebase client token provisioning is not wired in the shared UI.
+
+Known backend gaps:
+
+- The mobile guide says merchant auth should use `appSource=SEQUO_MERCHANT`, but the active backend `AppSource` enum currently exposes `SEQUO_APP`, `SEQUO_HUB`, and `SEQUO_RIDER`. SequoVendor currently uses the backend-accepted source for social login so sign-in can work; the API should add a merchant app source or document the intended accepted source for vendor auth.
+- Auth returns merchant roles but does not yet expose a dedicated merchant membership/selection endpoint for users with multiple merchants.
+- Seller catalog write endpoints are not mobile-ready. Needed: `GET /api/merchant/products`, `POST /api/merchant/products`, `PATCH /api/merchant/products/{productId}`, archive/unarchive, availability, stock, bargaining controls, return eligibility, variant/option updates, and merchant ownership validation.
+- Seller product media endpoints are missing. Needed: real-time camera capture upload/evidence, approved generic sealed-item catalog reference attachment, media freshness/verification read state, and server-side rejection of gallery uploads for seller-specific products.
+- Merchant store settings endpoints are missing. Needed: `GET/PUT /api/merchant/store-availability` or `GET/PUT /api/merchant/store-settings` with open/closed state, weekly hours, temporary exceptions, closure note, effective availability, and owner/staff scope validation.
+- Richer order detail would benefit from merchant line-item snapshots, option/variant labels, safe handoff/rider context, and package-label data.
+
 ## Source Of Truth
 
 - Current implemented mobile API: `../sequo-api/MOBILE_API_GUIDE.md` and active Spring controllers.
@@ -37,7 +70,7 @@ Implemented in `AuthController.kt`; vendor mobile uses `/api/auth` to match the 
 | Method | Path | Use In Vendor App |
 | --- | --- | --- |
 | `POST` | `/api/auth/whatsapp/request` | Request WhatsApp OTP for login. |
-| `POST` | `/api/auth/whatsapp/verify` | Verify OTP and create session. `device.appSource` must be `SEQUO_MERCHANT`. |
+| `POST` | `/api/auth/whatsapp/verify` | Verify OTP and create session. Merchant `appSource` is intended to be `SEQUO_MERCHANT`, but the active backend enum still needs that value. |
 | `POST` | `/api/auth/social/{provider}` | Social login where configured. |
 | `POST` | `/api/auth/passkey/register/challenge` | Start passkey registration for authenticated user. |
 | `POST` | `/api/auth/passkey/register/finish` | Finish passkey registration. |
@@ -278,32 +311,28 @@ Admin, SLA publishing, commission overrides, settlement ledger, dispatch, courie
 
 ## Build Commands
 
-Android debug build:
+Exact commands used in the final integration pass:
 
 ```bash
-./gradlew :androidApp:assembleDebug
+./gradlew :androidApp:compileDebugKotlin
 ```
-
-Shared Android host tests:
 
 ```bash
 ./gradlew :shared:testAndroidHostTest
 ```
 
-iOS simulator tests:
+```bash
+./gradlew :androidApp:assembleDebug
+```
+
+Other useful commands:
 
 ```bash
 ./gradlew :shared:iosSimulatorArm64Test
-```
-
-List Gradle tasks:
-
-```bash
-./gradlew tasks
 ```
 
 ## Current Repository Notes
 
 - This repository is a Kotlin Multiplatform app with `androidApp`, `iosApp`, and `shared` modules.
 - Treat generated `build/` artifacts and local screenshots as development output, not source-of-truth product documentation.
-- Do not add feature code until the active backend contract and phase target are clear.
+- Do not call target/future backend routes until active controllers exist and enforce merchant scope.
