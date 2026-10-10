@@ -74,6 +74,8 @@ import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.DemoVendorData
 import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
+import dev.orestegabo.sequovendor.model.OpeningHoursDay
+import dev.orestegabo.sequovendor.model.OpeningHoursException
 import dev.orestegabo.sequovendor.model.VendorSection
 import dev.orestegabo.sequovendor.model.VendorSession
 import dev.orestegabo.sequovendor.ui.account.AccountContent
@@ -402,6 +404,22 @@ internal fun SequoVendorShell(
             }
         }
     }
+    val setOpeningHours: (List<OpeningHoursDay>) -> Unit = { openingHours ->
+        scope.launch {
+            when (val result = storeRepository.setOpeningHours(activeSession.merchantId, openingHours)) {
+                is ApiResult.Success -> store = result.value
+                is ApiResult.Failure -> Unit
+            }
+        }
+    }
+    val addTemporaryException: (OpeningHoursException) -> Unit = { exception ->
+        scope.launch {
+            when (val result = storeRepository.addTemporaryException(activeSession.merchantId, exception)) {
+                is ApiResult.Success -> store = result.value
+                is ApiResult.Failure -> Unit
+            }
+        }
+    }
 
     suspend fun refreshMerchantOrders(showLoading: Boolean = true) {
         if (showLoading) ordersLoading = true
@@ -591,15 +609,16 @@ internal fun SequoVendorShell(
                             closureReason = closureNote,
                             onOpenChange = setStoreOpen,
                             onClosureReasonChange = setClosureReason,
+                            onOpeningHoursChange = setOpeningHours,
+                            onAddTemporaryException = addTemporaryException,
                             modifier = Modifier.fillMaxSize(),
                         )
                         VendorSection.Notifications -> NotificationsContent(dashboardOrders, Modifier.fillMaxSize())
                         VendorSection.Account -> AccountContent(
                             session = activeSession,
                             availability = store,
-                            closureNote = closureNote,
                             onAvailabilityChange = setStoreOpen,
-                            onClosureNoteChange = setClosureReason,
+                            onStoreClick = { currentSection = VendorSection.Store },
                             onLogout = {
                                 scope.launch {
                                     authRepository.logout()
@@ -676,7 +695,7 @@ private fun VendorDrawer(
             }
 
             DrawerSectionTitle(appText(Res.string.drawer_quick_links))
-            VendorSection.entries.forEach { section ->
+            VendorDrawerSections.forEach { section ->
                 DrawerActionRow(section.icon(), section.title(), selected = currentSection == section) { onSectionSelected(section) }
             }
 
@@ -752,6 +771,13 @@ private fun VendorSection.icon(): ImageVector = when (this) {
     VendorSection.Notifications -> Icons.Filled.Notifications
     VendorSection.Account -> Icons.Filled.Person
 }
+
+private val VendorDrawerSections = listOf(
+    VendorSection.Dashboard,
+    VendorSection.Orders,
+    VendorSection.Catalog,
+    VendorSection.Account,
+)
 
 private fun userFacingAuthError(error: Throwable, fallback: String, language: AppLanguage): String =
     when (error) {
