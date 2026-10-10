@@ -167,6 +167,8 @@ Hub opening-hours endpoints exist for relay/hub apps, but merchant store hours/s
 
 Current SequoVendor implementation: the Store screen uses a `VendorStoreRepository` interface with a `LocalVendorStoreRepository` fake/local implementation. It lets a seller mark the store open/closed, enter a temporary closure reason, see a last-updated local marker, and preview the customer-facing availability message. It does not call `/api/hub/opening-hours` or `/api/hub/control-state` because those routes are relay/hub scoped, not merchant scoped.
 
+Weekly opening hours and temporary exceptions are also local-only for now. The app supports one row per weekday, closed-day time omission, open-day `HH:mm` validation, "copy Monday to weekdays", and temporary date exceptions with closed/open override plus reason. This state is intentionally kept behind `VendorStoreRepository` until a merchant-owned backend contract exists.
+
 Needed:
 
 - `GET /api/merchant/store-availability?merchantId=...` or `GET /api/merchant/store-settings?merchantId=...`
