@@ -8,6 +8,9 @@ data class VendorSession(
     val accessToken: String? = null,
     val authProvider: String? = null,
     val localMode: Boolean = true,
+    val userId: String = merchantId,
+    val email: String? = null,
+    val status: String? = null,
 )
 
 enum class VendorSection {
