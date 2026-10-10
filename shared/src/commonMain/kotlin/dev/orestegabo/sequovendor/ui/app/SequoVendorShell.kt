@@ -69,12 +69,12 @@ import dev.orestegabo.sequovendor.model.VendorSection
 import dev.orestegabo.sequovendor.model.VendorSession
 import dev.orestegabo.sequovendor.ui.account.AccountContent
 import dev.orestegabo.sequovendor.ui.catalog.CatalogContent
-import dev.orestegabo.sequovendor.ui.components.MetricTile
 import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorChip
 import dev.orestegabo.sequovendor.ui.components.VendorMark
 import dev.orestegabo.sequovendor.ui.chrome.VendorBottomBar
-import dev.orestegabo.sequovendor.ui.home.HomeContent
+import dev.orestegabo.sequovendor.ui.dashboard.DashboardContent
+import dev.orestegabo.sequovendor.ui.notifications.NotificationsContent
 import dev.orestegabo.sequovendor.ui.orders.OrdersContent
 import dev.orestegabo.sequovendor.ui.store.StoreContent
 import kotlinx.coroutines.launch
@@ -118,18 +118,17 @@ import sequovendor.shared.generated.resources.language_en
 import sequovendor.shared.generated.resources.language_fr
 import sequovendor.shared.generated.resources.nav_catalog
 import sequovendor.shared.generated.resources.nav_catalog_subtitle
-import sequovendor.shared.generated.resources.nav_home
-import sequovendor.shared.generated.resources.nav_home_subtitle
+import sequovendor.shared.generated.resources.nav_dashboard
+import sequovendor.shared.generated.resources.nav_dashboard_subtitle
+import sequovendor.shared.generated.resources.nav_notifications
+import sequovendor.shared.generated.resources.nav_notifications_subtitle
 import sequovendor.shared.generated.resources.nav_orders
 import sequovendor.shared.generated.resources.nav_orders_subtitle
 import sequovendor.shared.generated.resources.nav_account
 import sequovendor.shared.generated.resources.nav_account_subtitle
 import sequovendor.shared.generated.resources.nav_store
 import sequovendor.shared.generated.resources.nav_store_subtitle
-import sequovendor.shared.generated.resources.shell_local_mode
 import sequovendor.shared.generated.resources.shell_sign_out
-import sequovendor.shared.generated.resources.state_off
-import sequovendor.shared.generated.resources.state_on
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,7 +162,7 @@ internal fun SequoVendorShell(
     var authNotice by remember { mutableStateOf<String?>(null) }
     var emailAuthInProgress by remember { mutableStateOf(false) }
     var googleSignInInProgress by remember { mutableStateOf(false) }
-    var currentSection by remember { mutableStateOf(VendorSection.Home) }
+    var currentSection by remember { mutableStateOf(VendorSection.Dashboard) }
 
     val orders = remember { DemoVendorData.orders() }
     val products = remember { DemoVendorData.products() }
@@ -181,6 +180,7 @@ internal fun SequoVendorShell(
                         merchantId = user.id,
                         displayName = user.displayName,
                         accessToken = savedSession?.accessToken,
+                        authProvider = user.provider,
                         localMode = false,
                     )
                 }
@@ -198,7 +198,7 @@ internal fun SequoVendorShell(
                 scope.launch {
                     authRepository.getSavedSession()?.let { saved ->
                         rememberedUser?.let { user ->
-                            session = VendorSession(user.id, user.displayName, saved.accessToken, localMode = false)
+                            session = VendorSession(user.id, user.displayName, saved.accessToken, authProvider = user.provider, localMode = false)
                         }
                     } ?: run { authNotice = notReadyMessage }
                 }
@@ -213,7 +213,7 @@ internal fun SequoVendorShell(
                         if (user != null) {
                             rememberedUser = user
                             authRepository.rememberUser(user)
-                            session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, localMode = false)
+                            session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, authProvider = user.provider, localMode = false)
                         } else {
                             authNotice = notReadyMessage
                         }
@@ -233,7 +233,7 @@ internal fun SequoVendorShell(
                         if (user != null) {
                             rememberedUser = user
                             authRepository.rememberUser(user)
-                            session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, localMode = false)
+                            session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, authProvider = user.provider, localMode = false)
                         } else {
                             authNotice = notReadyMessage
                         }
@@ -259,7 +259,7 @@ internal fun SequoVendorShell(
                                 if (user != null) {
                                     rememberedUser = user
                                     authRepository.rememberUser(user)
-                                    session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, localMode = false)
+                                    session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, authProvider = user.provider, localMode = false)
                                 } else {
                                     authNotice = notReadyMessage
                                 }
@@ -330,6 +330,7 @@ internal fun SequoVendorShell(
                 VendorTopAppBar(
                     section = currentSection,
                     onMenuClick = { scope.launch { drawerState.open() } },
+                    onNotificationsClick = { currentSection = VendorSection.Notifications },
                 )
             },
             bottomBar = {
@@ -345,7 +346,7 @@ internal fun SequoVendorShell(
             ) {
                 Box(Modifier.fillMaxSize()) {
                     when (currentSection) {
-                        VendorSection.Home -> HomeContent(
+                        VendorSection.Dashboard -> DashboardContent(
                             session = activeSession,
                             orders = orders,
                             products = products,
@@ -358,6 +359,7 @@ internal fun SequoVendorShell(
                         VendorSection.Orders -> OrdersContent(orders, Modifier.fillMaxSize())
                         VendorSection.Catalog -> CatalogContent(products, Modifier.fillMaxSize())
                         VendorSection.Store -> StoreContent(store, Modifier.fillMaxSize())
+                        VendorSection.Notifications -> NotificationsContent(orders, Modifier.fillMaxSize())
                         VendorSection.Account -> AccountContent(
                             session = activeSession,
                             availability = store,
@@ -402,7 +404,11 @@ internal fun SequoVendorShell(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun VendorTopAppBar(section: VendorSection, onMenuClick: () -> Unit) {
+private fun VendorTopAppBar(
+    section: VendorSection,
+    onMenuClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
+) {
     TopAppBar(
         title = {
             Column {
@@ -416,7 +422,7 @@ private fun VendorTopAppBar(section: VendorSection, onMenuClick: () -> Unit) {
             }
         },
         actions = {
-            IconButton(onClick = {}) {
+            IconButton(onClick = onNotificationsClick) {
                 Icon(Icons.Filled.Notifications, contentDescription = appText(Res.string.cd_notifications))
             }
         },
@@ -481,21 +487,6 @@ private fun VendorDrawer(
 }
 
 @Composable
-private fun MerchantSummary(name: String, merchantId: String, localMode: Boolean, orders: Int, products: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Column {
-            Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(merchantId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricTile(appText(Res.string.nav_orders), orders.toString(), Modifier.weight(1f))
-            MetricTile(appText(Res.string.nav_catalog), products.toString(), Modifier.weight(1f))
-            MetricTile(appText(Res.string.shell_local_mode), if (localMode) appText(Res.string.state_on) else appText(Res.string.state_off), Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
 private fun DrawerSectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
 }
@@ -521,27 +512,30 @@ private fun DrawerActionRow(icon: ImageVector, label: String, detail: String? = 
 
 @Composable
 private fun VendorSection.title(): String = when (this) {
-    VendorSection.Home -> appText(Res.string.nav_home)
+    VendorSection.Dashboard -> appText(Res.string.nav_dashboard)
     VendorSection.Orders -> appText(Res.string.nav_orders)
     VendorSection.Catalog -> appText(Res.string.nav_catalog)
     VendorSection.Store -> appText(Res.string.nav_store)
+    VendorSection.Notifications -> appText(Res.string.nav_notifications)
     VendorSection.Account -> appText(Res.string.nav_account)
 }
 
 @Composable
 private fun VendorSection.subtitle(): String = when (this) {
-    VendorSection.Home -> appText(Res.string.nav_home_subtitle)
+    VendorSection.Dashboard -> appText(Res.string.nav_dashboard_subtitle)
     VendorSection.Orders -> appText(Res.string.nav_orders_subtitle)
     VendorSection.Catalog -> appText(Res.string.nav_catalog_subtitle)
     VendorSection.Store -> appText(Res.string.nav_store_subtitle)
+    VendorSection.Notifications -> appText(Res.string.nav_notifications_subtitle)
     VendorSection.Account -> appText(Res.string.nav_account_subtitle)
 }
 
 private fun VendorSection.icon(): ImageVector = when (this) {
-    VendorSection.Home -> Icons.Filled.Home
+    VendorSection.Dashboard -> Icons.Filled.Home
     VendorSection.Orders -> Icons.Filled.ReceiptLong
     VendorSection.Catalog -> Icons.Filled.Inventory2
     VendorSection.Store -> Icons.Filled.Storefront
+    VendorSection.Notifications -> Icons.Filled.Notifications
     VendorSection.Account -> Icons.Filled.Person
 }
 
