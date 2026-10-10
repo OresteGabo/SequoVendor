@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.model.CatalogProduct
+import dev.orestegabo.sequovendor.model.formatCfaOrDash
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.ui.components.VendorCard
 import sequovendor.shared.generated.resources.Res
@@ -39,9 +40,9 @@ internal fun CatalogContent(
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(product.status, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(product.status.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
-                    Text("CFA ${product.priceCfa}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(product.priceCfa.formatCfaOrDash(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         if (product.cameraVerified) appText(Res.string.catalog_camera_verified) else appText(Res.string.catalog_needs_photo),
                         style = MaterialTheme.typography.bodySmall,
