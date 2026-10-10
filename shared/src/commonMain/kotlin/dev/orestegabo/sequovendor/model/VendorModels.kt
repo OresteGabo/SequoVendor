@@ -198,6 +198,8 @@ data class CatalogProduct(
     val bargainingEnabled: Boolean = false,
     val bargainFloorCfa: Int? = null,
     val capturedAtLabel: String? = null,
+    val stockSummary: String? = null,
+    val updatedAt: String? = null,
 )
 
 @Serializable
@@ -210,6 +212,8 @@ enum class CatalogProductKind {
 enum class CatalogProductStatus {
     ACTIVE,
     INACTIVE,
+    DRAFT,
+    PAUSED,
     ARCHIVED,
 }
 
@@ -389,9 +393,58 @@ object DemoVendorData {
     )
 
     fun products() = listOf(
-        CatalogProduct("prod-demo-001", "Fresh tilapia box", 4_500, CatalogProductStatus.ACTIVE, cameraVerified = true),
-        CatalogProduct("prod-demo-002", "Local cassava flour", 2_200, CatalogProductStatus.ACTIVE, cameraVerified = false),
-        CatalogProduct("prod-demo-003", "Weekend bundle", 12_000, CatalogProductStatus.ARCHIVED, cameraVerified = true),
+        CatalogProduct(
+            id = "prod-demo-001",
+            name = "Fresh tilapia box",
+            priceCfa = 4_500,
+            status = CatalogProductStatus.ACTIVE,
+            cameraVerified = true,
+            merchantId = "merchant-demo-sequo",
+            category = "food",
+            subcategory = "Fresh fish",
+            detail = "Prepared morning batch",
+            stockSummary = "Available",
+            updatedAt = "2026-10-10T09:15:00Z",
+        ),
+        CatalogProduct(
+            id = "prod-demo-002",
+            name = "Local cassava flour",
+            priceCfa = 2_200,
+            status = CatalogProductStatus.ACTIVE,
+            cameraVerified = false,
+            merchantId = "merchant-demo-sequo",
+            category = "grocery",
+            subcategory = "Pantry",
+            detail = "Needs live seller photo",
+            stockSummary = "Available",
+            updatedAt = "2026-10-09T17:40:00Z",
+        ),
+        CatalogProduct(
+            id = "prod-demo-003",
+            name = "Weekend bundle",
+            priceCfa = 12_000,
+            status = CatalogProductStatus.PAUSED,
+            cameraVerified = true,
+            merchantId = "merchant-demo-sequo",
+            category = "food",
+            subcategory = "Bundles",
+            detail = "Paused locally until stock returns",
+            stockSummary = "Out of stock",
+            updatedAt = "2026-10-08T11:00:00Z",
+        ),
+        CatalogProduct(
+            id = "prod-demo-004",
+            name = "New supplier basket",
+            priceCfa = null,
+            status = CatalogProductStatus.DRAFT,
+            cameraVerified = false,
+            merchantId = "merchant-demo-sequo",
+            category = "grocery",
+            subcategory = "Draft",
+            detail = "Local draft only",
+            stockSummary = "Draft",
+            updatedAt = "2026-10-10T12:00:00Z",
+        ),
     )
 
     fun store() = StoreStatus(
