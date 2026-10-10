@@ -281,6 +281,7 @@
     <string name="store_hours_invalid">Les jours ouverts exigent des horaires HH:mm valides avec ouverture avant fermeture.</string>
     <string name="store_temporary_exceptions">Exceptions temporaires</string>
     <string name="store_exception_date">Date</string>
+    <string name="store_exception_date_placeholder">AAAA-MM-JJ</string>
     <string name="store_exception_override">Exception</string>
     <string name="store_exception_open">Ouverture exceptionelle</string>
     <string name="store_exception_closed">Fermeture exceptionelle</string>
