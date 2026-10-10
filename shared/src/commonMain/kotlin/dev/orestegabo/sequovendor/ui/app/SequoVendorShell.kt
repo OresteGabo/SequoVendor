@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.SupportAgent
@@ -62,14 +64,17 @@ import dev.orestegabo.sequovendor.feature.settings.AppLanguage
 import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.DemoVendorData
+import dev.orestegabo.sequovendor.model.TemporaryClosure
 import dev.orestegabo.sequovendor.model.VendorSection
 import dev.orestegabo.sequovendor.model.VendorSession
+import dev.orestegabo.sequovendor.ui.account.AccountContent
 import dev.orestegabo.sequovendor.ui.catalog.CatalogContent
 import dev.orestegabo.sequovendor.ui.components.MetricTile
 import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorChip
 import dev.orestegabo.sequovendor.ui.components.VendorMark
 import dev.orestegabo.sequovendor.ui.chrome.VendorBottomBar
+import dev.orestegabo.sequovendor.ui.home.HomeContent
 import dev.orestegabo.sequovendor.ui.orders.OrdersContent
 import dev.orestegabo.sequovendor.ui.store.StoreContent
 import kotlinx.coroutines.launch
@@ -113,8 +118,12 @@ import sequovendor.shared.generated.resources.language_en
 import sequovendor.shared.generated.resources.language_fr
 import sequovendor.shared.generated.resources.nav_catalog
 import sequovendor.shared.generated.resources.nav_catalog_subtitle
+import sequovendor.shared.generated.resources.nav_home
+import sequovendor.shared.generated.resources.nav_home_subtitle
 import sequovendor.shared.generated.resources.nav_orders
 import sequovendor.shared.generated.resources.nav_orders_subtitle
+import sequovendor.shared.generated.resources.nav_account
+import sequovendor.shared.generated.resources.nav_account_subtitle
 import sequovendor.shared.generated.resources.nav_store
 import sequovendor.shared.generated.resources.nav_store_subtitle
 import sequovendor.shared.generated.resources.shell_local_mode
@@ -154,11 +163,12 @@ internal fun SequoVendorShell(
     var authNotice by remember { mutableStateOf<String?>(null) }
     var emailAuthInProgress by remember { mutableStateOf(false) }
     var googleSignInInProgress by remember { mutableStateOf(false) }
-    var currentSection by remember { mutableStateOf(VendorSection.Orders) }
+    var currentSection by remember { mutableStateOf(VendorSection.Home) }
 
     val orders = remember { DemoVendorData.orders() }
     val products = remember { DemoVendorData.products() }
-    val store = remember { DemoVendorData.store() }
+    var store by remember { mutableStateOf(DemoVendorData.store()) }
+    var closureNote by remember { mutableStateOf("") }
 
     LaunchedEffect(authRepository) {
         rememberedUser = authRepository.getRememberedUser()
@@ -333,12 +343,56 @@ internal fun SequoVendorShell(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                MerchantSummary(activeSession.displayName, activeSession.merchantId, activeSession.localMode, orders.size, products.size)
                 Box(Modifier.fillMaxSize()) {
                     when (currentSection) {
+                        VendorSection.Home -> HomeContent(
+                            session = activeSession,
+                            orders = orders,
+                            products = products,
+                            store = store,
+                            onOrdersClick = { currentSection = VendorSection.Orders },
+                            onCatalogClick = { currentSection = VendorSection.Catalog },
+                            onStoreClick = { currentSection = VendorSection.Store },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         VendorSection.Orders -> OrdersContent(orders, Modifier.fillMaxSize())
                         VendorSection.Catalog -> CatalogContent(products, Modifier.fillMaxSize())
                         VendorSection.Store -> StoreContent(store, Modifier.fillMaxSize())
+                        VendorSection.Account -> AccountContent(
+                            session = activeSession,
+                            availability = store,
+                            closureNote = closureNote,
+                            onAvailabilityChange = { open ->
+                                store = store.copy(
+                                    open = open,
+                                    acceptingOrders = open,
+                                    openStatus = if (open) "OPEN" else "PAUSED",
+                                    temporaryClosure = if (open || closureNote.isBlank()) null else TemporaryClosure(
+                                        startsAt = "local",
+                                        endsAt = "local",
+                                        reason = closureNote,
+                                    ),
+                                )
+                            },
+                            onClosureNoteChange = { note ->
+                                closureNote = note
+                                store = store.copy(
+                                    temporaryClosure = if (store.open || note.isBlank()) null else TemporaryClosure(
+                                        startsAt = "local",
+                                        endsAt = "local",
+                                        reason = note,
+                                    ),
+                                )
+                            },
+                            onLogout = {
+                                scope.launch {
+                                    authRepository.logout()
+                                    onGoogleSignOut()
+                                    session = null
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                 }
             }
@@ -467,22 +521,28 @@ private fun DrawerActionRow(icon: ImageVector, label: String, detail: String? = 
 
 @Composable
 private fun VendorSection.title(): String = when (this) {
+    VendorSection.Home -> appText(Res.string.nav_home)
     VendorSection.Orders -> appText(Res.string.nav_orders)
     VendorSection.Catalog -> appText(Res.string.nav_catalog)
     VendorSection.Store -> appText(Res.string.nav_store)
+    VendorSection.Account -> appText(Res.string.nav_account)
 }
 
 @Composable
 private fun VendorSection.subtitle(): String = when (this) {
+    VendorSection.Home -> appText(Res.string.nav_home_subtitle)
     VendorSection.Orders -> appText(Res.string.nav_orders_subtitle)
     VendorSection.Catalog -> appText(Res.string.nav_catalog_subtitle)
     VendorSection.Store -> appText(Res.string.nav_store_subtitle)
+    VendorSection.Account -> appText(Res.string.nav_account_subtitle)
 }
 
 private fun VendorSection.icon(): ImageVector = when (this) {
+    VendorSection.Home -> Icons.Filled.Home
     VendorSection.Orders -> Icons.Filled.ReceiptLong
     VendorSection.Catalog -> Icons.Filled.Inventory2
     VendorSection.Store -> Icons.Filled.Storefront
+    VendorSection.Account -> Icons.Filled.Person
 }
 
 private fun userFacingAuthError(error: Throwable, fallback: String, language: AppLanguage): String =
