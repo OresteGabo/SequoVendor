@@ -85,7 +85,11 @@ internal fun AccountContent(
                         Text(appText(Res.string.account_profile), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         Text(session.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            if (session.localMode) appText(Res.string.account_demo) else appText(Res.string.account_signed_in),
+                            if (session.localMode) {
+                                appText(Res.string.account_demo)
+                            } else {
+                                "${appText(Res.string.account_provider)}: ${session.authProvider.providerLabel()}"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -152,3 +156,13 @@ internal fun AccountContent(
 private fun PaymentChip(label: String) {
     AssistChip(onClick = {}, label = { Text(label) })
 }
+
+private fun String?.providerLabel(): String =
+    when (this?.uppercase()) {
+        "GOOGLE" -> "Google"
+        "APPLE" -> "iCloud"
+        "FACEBOOK" -> "Facebook"
+        "EMAIL" -> "Email"
+        "PASSKEY" -> "Passkey"
+        else -> "Sequo"
+    }
