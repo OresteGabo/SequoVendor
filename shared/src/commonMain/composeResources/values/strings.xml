@@ -281,6 +281,7 @@
     <string name="store_hours_invalid">Open days need valid HH:mm times with opening before closing.</string>
     <string name="store_temporary_exceptions">Temporary exceptions</string>
     <string name="store_exception_date">Date</string>
+    <string name="store_exception_date_placeholder">YYYY-MM-DD</string>
     <string name="store_exception_override">Override</string>
     <string name="store_exception_open">Open override</string>
     <string name="store_exception_closed">Closed override</string>
