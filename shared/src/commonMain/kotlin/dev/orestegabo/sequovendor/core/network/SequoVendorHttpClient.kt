@@ -1,6 +1,7 @@
 package dev.orestegabo.sequovendor.core.network
 
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.ClientRequestException
@@ -37,7 +38,9 @@ fun createSequoVendorHttpClient(
     json: Json = defaultNetworkJson,
     accessTokenProvider: (() -> String?)? = null,
     refreshAccessToken: (suspend () -> Boolean)? = null,
-): HttpClient = HttpClient {
+    engine: HttpClientEngine? = null,
+): HttpClient {
+    val configure: io.ktor.client.HttpClientConfig<*>.() -> Unit = {
     expectSuccess = true
 
     defaultRequest {
@@ -85,6 +88,9 @@ fun createSequoVendorHttpClient(
             }
         }
     }
+    }
+
+    return if (engine == null) HttpClient(configure) else HttpClient(engine, configure)
 }
 
 private fun bearerRefreshRetryPlugin(
