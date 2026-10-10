@@ -290,6 +290,20 @@
     <string name="account_detail">Profil, paiements, disponibilite et controles locaux.</string>
     <string name="account_profile">Profil</string>
     <string name="account_provider">Fournisseur</string>
+    <string name="account_user_id">Utilisateur</string>
+    <string name="account_email">Email</string>
+    <string name="account_status">Statut</string>
+    <string name="account_merchant_context">Contexte marchand</string>
+    <string name="account_merchant_id">ID marchand</string>
+    <string name="account_language">Langue</string>
+    <string name="account_theme">Theme</string>
+    <string name="account_api_health">Sante API</string>
+    <string name="account_api_healthy">L'API Sequo est operationnelle</string>
+    <string name="account_api_unreachable">L'API Sequo est actuellement inaccessible</string>
+    <string name="account_api_check">Verifier l'API</string>
+    <string name="account_notifications_entry">Preferences notifications</string>
+    <string name="account_legal_privacy">Legal et confidentialite</string>
+    <string name="account_open_notifications">Gerer les notifications</string>
     <string name="account_payments_accepted">Paiements acceptes</string>
     <string name="account_payment_mobile_money">Yas Togo / Moov Africa</string>
     <string name="account_payment_card">Paiements carte via Sequo checkout</string>
@@ -311,8 +325,8 @@
     <string name="error_rate_limited_detail">Trop de requetes. Patientez avant de reessayer.</string>
     <string name="error_server_detail">Le service Sequo est indisponible. Reessayez bientot.</string>
     <string name="error_generic_detail">Une erreur est survenue. Reessayez.</string>
-    <string name="legal_title">Legal</string>
-    <string name="legal_detail">Les conditions et la confidentialite seront ici.</string>
+    <string name="legal_title">Legal et confidentialite</string>
+    <string name="legal_detail">Sequo Vendor utilise votre compte, votre perimetre marchand, l'activite commande, les preferences de notification et les identifiants appareil uniquement pour operer les workflows vendeur. Paiements, livraison et support restent confirmes par le serveur. Contactez le support Sequo pour les demandes de confidentialite, acces ou suppression.</string>
     <string name="splash_title">Sequo Vendor</string>
     <string name="splash_subtitle">Outils vendeur, prets.</string>
 </resources>
