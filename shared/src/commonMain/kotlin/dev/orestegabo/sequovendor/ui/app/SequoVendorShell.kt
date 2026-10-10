@@ -68,6 +68,8 @@ import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentApiClient
 import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.fulfillment.NetworkMerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.network.ApiResult
+import dev.orestegabo.sequovendor.core.network.ApiHealthClient
+import dev.orestegabo.sequovendor.core.network.ApiHealthStatus
 import dev.orestegabo.sequovendor.core.network.createSequoVendorHttpClient
 import dev.orestegabo.sequovendor.core.notifications.FakeVendorNotificationsRepository
 import dev.orestegabo.sequovendor.core.notifications.NetworkVendorNotificationsRepository
@@ -176,6 +178,7 @@ internal fun SequoVendorShell(
             secureSessionCache = SecureSessionCache(secureTokenStorage, biometricAuthenticator),
         )
     }
+    val apiHealthClient = remember { ApiHealthClient() }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val notReadyMessage = appText(Res.string.auth_not_ready)
@@ -188,6 +191,7 @@ internal fun SequoVendorShell(
     var emailAuthInProgress by remember { mutableStateOf(false) }
     var googleSignInInProgress by remember { mutableStateOf(false) }
     var currentSection by remember { mutableStateOf(VendorSection.Dashboard) }
+    var apiHealthStatus by remember { mutableStateOf<ApiHealthStatus?>(null) }
 
     val localOrders = remember { DemoVendorData.orders() }
     val localProducts = remember { DemoVendorData.products() }
@@ -219,6 +223,9 @@ internal fun SequoVendorShell(
                         accessToken = savedSession?.accessToken,
                         authProvider = user.provider,
                         localMode = false,
+                        userId = user.id,
+                        email = user.email,
+                        status = user.status,
                     )
                 }
             }
@@ -235,7 +242,16 @@ internal fun SequoVendorShell(
                 scope.launch {
                     authRepository.getSavedSession()?.let { saved ->
                         rememberedUser?.let { user ->
-                            session = VendorSession(user.id, user.displayName, saved.accessToken, authProvider = user.provider, localMode = false)
+                            session = VendorSession(
+                                merchantId = user.id,
+                                displayName = user.displayName,
+                                accessToken = saved.accessToken,
+                                authProvider = user.provider,
+                                localMode = false,
+                                userId = user.id,
+                                email = user.email,
+                                status = user.status,
+                            )
                         }
                     } ?: run { authNotice = notReadyMessage }
                 }
@@ -251,7 +267,16 @@ internal fun SequoVendorShell(
                         if (user != null) {
                             rememberedUser = user
                             authRepository.rememberUser(user)
-                            session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, authProvider = user.provider, localMode = false)
+                            session = VendorSession(
+                                merchantId = user.id,
+                                displayName = user.displayName,
+                                accessToken = authRepository.getSavedSession()?.accessToken,
+                                authProvider = user.provider,
+                                localMode = false,
+                                userId = user.id,
+                                email = user.email,
+                                status = user.status,
+                            )
                         } else {
                             authNotice = notReadyMessage
                         }
@@ -272,7 +297,16 @@ internal fun SequoVendorShell(
                         if (user != null) {
                             rememberedUser = user
                             authRepository.rememberUser(user)
-                            session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, authProvider = user.provider, localMode = false)
+                            session = VendorSession(
+                                merchantId = user.id,
+                                displayName = user.displayName,
+                                accessToken = authRepository.getSavedSession()?.accessToken,
+                                authProvider = user.provider,
+                                localMode = false,
+                                userId = user.id,
+                                email = user.email,
+                                status = user.status,
+                            )
                         } else {
                             authNotice = notReadyMessage
                         }
@@ -299,7 +333,16 @@ internal fun SequoVendorShell(
                                 if (user != null) {
                                     rememberedUser = user
                                     authRepository.rememberUser(user)
-                                    session = VendorSession(user.id, user.displayName, authRepository.getSavedSession()?.accessToken, authProvider = user.provider, localMode = false)
+                                    session = VendorSession(
+                                        merchantId = user.id,
+                                        displayName = user.displayName,
+                                        accessToken = authRepository.getSavedSession()?.accessToken,
+                                        authProvider = user.provider,
+                                        localMode = false,
+                                        userId = user.id,
+                                        email = user.email,
+                                        status = user.status,
+                                    )
                                 } else {
                                     authNotice = notReadyMessage
                                 }
@@ -462,6 +505,12 @@ internal fun SequoVendorShell(
                 is ApiResult.Success -> store = result.value
                 is ApiResult.Failure -> Unit
             }
+        }
+    }
+
+    fun checkApiHealth() {
+        scope.launch {
+            apiHealthStatus = apiHealthClient.checkHealth()
         }
     }
     val setClosureReason: (String) -> Unit = { note ->
@@ -679,6 +728,10 @@ internal fun SequoVendorShell(
         refreshNotifications(showLoading = true)
     }
 
+    LaunchedEffect(Unit) {
+        checkApiHealth()
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -797,8 +850,15 @@ internal fun SequoVendorShell(
                         VendorSection.Account -> AccountContent(
                             session = activeSession,
                             availability = store,
+                            language = language,
+                            onLanguageChange = onLanguageChange,
+                            themePreference = themePreference,
+                            onThemePreferenceChange = onThemePreferenceChange,
+                            apiHealthStatus = apiHealthStatus,
+                            onCheckApiHealth = ::checkApiHealth,
                             onAvailabilityChange = setStoreOpen,
                             onStoreClick = { currentSection = VendorSection.Store },
+                            onNotificationsClick = { currentSection = VendorSection.Notifications },
                             onLogout = {
                                 scope.launch {
                                     authRepository.logout()
