@@ -118,6 +118,17 @@
     <string name="orders_loading">Chargement des commandes marchand...</string>
     <string name="orders_offline">Les commandes n'ont pas pu etre actualisees. Verifiez la connexion et reessayez.</string>
     <string name="orders_action_failed">L'action sur la commande n'a pas abouti. Reessayez.</string>
+    <string name="order_view_detail">Voir le detail</string>
+    <string name="order_detail_title">Detail commande</string>
+    <string name="order_detail_back">Retour aux commandes</string>
+    <string name="order_status_timeline">Chronologie statut</string>
+    <string name="order_financial_summary">Resume financier</string>
+    <string name="order_sla_panel">Panneau SLA</string>
+    <string name="order_id">ID commande</string>
+    <string name="order_package_count_label">Nombre de colis</string>
+    <string name="order_package_count_required">Saisissez le nombre de colis avant de marquer prete.</string>
+    <string name="order_sla_on_track">Dans les temps</string>
+    <string name="order_sla_overdue">En retard</string>
     <string name="home_title">Aujourd'hui</string>
     <string name="home_detail">Operations vendeur en un coup d'oeil.</string>
     <string name="home_pending">En attente</string>
