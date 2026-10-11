@@ -627,9 +627,9 @@ internal fun SequoVendorShell(
 
     fun saveProductDraft(product: CatalogProduct) {
         scope.launch {
-            when (val result = catalogRepository.saveLocalDraft(activeSession.merchantId, product)) {
+            when (val result = catalogRepository.saveDraftLocally(activeSession.merchantId, product)) {
                 is ApiResult.Success -> {
-                    products = products.filterNot { it.id == result.value.id } + result.value
+                    products = products.filterNot { it.id == result.value.product.id } + result.value.product
                     catalogOffline = false
                 }
                 is ApiResult.Failure -> {

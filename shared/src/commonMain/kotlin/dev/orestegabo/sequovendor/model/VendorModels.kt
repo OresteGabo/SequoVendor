@@ -206,6 +206,25 @@ data class CatalogProduct(
     val stockCount: Int? = null,
     val preparationTimeMinutes: Int? = null,
     val returnEligible: Boolean = false,
+    val syncState: CatalogProductSyncState = CatalogProductSyncState.SERVER_SYNCED,
+    val foodOptionGroups: List<CatalogFoodOptionGroup> = emptyList(),
+)
+
+@Serializable
+data class CatalogFoodOptionGroup(
+    val id: String,
+    val name: String,
+    val required: Boolean = false,
+    val maxSelections: Int = 1,
+    val options: List<CatalogFoodOption> = emptyList(),
+)
+
+@Serializable
+data class CatalogFoodOption(
+    val id: String,
+    val label: String,
+    val priceDeltaCfa: Int = 0,
+    val available: Boolean = true,
 )
 
 @Serializable
@@ -221,6 +240,12 @@ enum class CatalogProductStatus {
     DRAFT,
     PAUSED,
     ARCHIVED,
+}
+
+@Serializable
+enum class CatalogProductSyncState {
+    SERVER_SYNCED,
+    LOCAL_DRAFT,
 }
 
 @Serializable

@@ -29,6 +29,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.CatalogProduct
+import dev.orestegabo.sequovendor.model.CatalogFoodOption
+import dev.orestegabo.sequovendor.model.CatalogFoodOptionGroup
+import dev.orestegabo.sequovendor.model.CatalogProductSyncState
 import dev.orestegabo.sequovendor.model.CatalogProductStatus
 import dev.orestegabo.sequovendor.model.formatCfaOrDash
 import dev.orestegabo.sequovendor.model.formatIsoTimestampOrDash
@@ -44,11 +47,20 @@ import sequovendor.shared.generated.resources.catalog_detail
 import sequovendor.shared.generated.resources.catalog_empty
 import sequovendor.shared.generated.resources.catalog_edit
 import sequovendor.shared.generated.resources.catalog_editor_availability
-import sequovendor.shared.generated.resources.catalog_editor_bargaining_disabled
+import sequovendor.shared.generated.resources.catalog_editor_bargaining
+import sequovendor.shared.generated.resources.catalog_editor_bargaining_local_note
 import sequovendor.shared.generated.resources.catalog_editor_cancel
 import sequovendor.shared.generated.resources.catalog_editor_category
 import sequovendor.shared.generated.resources.catalog_editor_detail
 import sequovendor.shared.generated.resources.catalog_editor_food_policy
+import sequovendor.shared.generated.resources.catalog_editor_food_group_name
+import sequovendor.shared.generated.resources.catalog_editor_food_local_note
+import sequovendor.shared.generated.resources.catalog_editor_food_max_selections
+import sequovendor.shared.generated.resources.catalog_editor_food_option_available
+import sequovendor.shared.generated.resources.catalog_editor_food_option_label
+import sequovendor.shared.generated.resources.catalog_editor_food_option_price
+import sequovendor.shared.generated.resources.catalog_editor_food_required
+import sequovendor.shared.generated.resources.catalog_editor_food_title
 import sequovendor.shared.generated.resources.catalog_editor_local_badge
 import sequovendor.shared.generated.resources.catalog_editor_name
 import sequovendor.shared.generated.resources.catalog_editor_original_price
@@ -59,6 +71,7 @@ import sequovendor.shared.generated.resources.catalog_editor_price
 import sequovendor.shared.generated.resources.catalog_editor_return_eligible
 import sequovendor.shared.generated.resources.catalog_editor_save
 import sequovendor.shared.generated.resources.catalog_editor_saved
+import sequovendor.shared.generated.resources.catalog_local_draft_badge
 import sequovendor.shared.generated.resources.catalog_editor_stock_count
 import sequovendor.shared.generated.resources.catalog_editor_stock_state
 import sequovendor.shared.generated.resources.catalog_editor_subcategory
@@ -77,6 +90,7 @@ import sequovendor.shared.generated.resources.catalog_status_archived
 import sequovendor.shared.generated.resources.catalog_status_draft
 import sequovendor.shared.generated.resources.catalog_status_paused
 import sequovendor.shared.generated.resources.catalog_stock
+import sequovendor.shared.generated.resources.catalog_synced_badge
 import sequovendor.shared.generated.resources.catalog_title
 
 @Composable
@@ -229,7 +243,10 @@ private fun ProductCard(product: CatalogProduct, onEdit: () -> Unit) {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                Text(product.status.label(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(product.status.label(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(product.syncState.label(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -243,7 +260,14 @@ private fun ProductCard(product: CatalogProduct, onEdit: () -> Unit) {
             }
             KeyValueRow(appText(Res.string.catalog_price), product.priceCfa.formatCfaOrDash())
             KeyValueRow(appText(Res.string.catalog_stock), product.stockSummary ?: product.status.stockLabel())
-            KeyValueRow(appText(Res.string.catalog_last_updated), product.updatedAt.formatIsoTimestampOrDash())
+            KeyValueRow(
+                appText(Res.string.catalog_last_updated),
+                if (product.syncState == CatalogProductSyncState.LOCAL_DRAFT) {
+                    appText(Res.string.catalog_local_draft_badge)
+                } else {
+                    product.updatedAt.formatIsoTimestampOrDash()
+                },
+            )
             OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
                 Text(appText(Res.string.catalog_edit))
             }
@@ -269,7 +293,19 @@ private fun ProductEditorCard(
     var stockState by remember(product.id, defaultStockState) { mutableStateOf(defaultStockState) }
     var prepTime by remember(product.id) { mutableStateOf(product.preparationTimeMinutes?.toString().orEmpty()) }
     var returnEligible by remember(product.id) { mutableStateOf(product.returnEligible) }
+    var bargainingEnabled by remember(product.id) { mutableStateOf(product.bargainingEnabled) }
+    val firstFoodGroup = remember(product.id) { product.foodOptionGroups.firstOrNull() }
+    val firstFoodOption = remember(product.id) { firstFoodGroup?.options?.firstOrNull() }
+    var foodGroupName by remember(product.id) { mutableStateOf(firstFoodGroup?.name.orEmpty()) }
+    var foodRequired by remember(product.id) { mutableStateOf(firstFoodGroup?.required ?: false) }
+    var foodMaxSelections by remember(product.id) { mutableStateOf(firstFoodGroup?.maxSelections?.toString().orEmpty()) }
+    var foodOptionLabel by remember(product.id) { mutableStateOf(firstFoodOption?.label.orEmpty()) }
+    var foodOptionPrice by remember(product.id) { mutableStateOf(firstFoodOption?.priceDeltaCfa?.toString().orEmpty()) }
+    var foodOptionAvailable by remember(product.id) { mutableStateOf(firstFoodOption?.available ?: true) }
     val canSave = name.isNotBlank()
+    val showFoodOptions = isFoodOrPerishable(category, subcategory, product) ||
+        foodGroupName.isNotBlank() ||
+        foodOptionLabel.isNotBlank()
 
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -297,13 +333,39 @@ private fun ProductEditorCard(
                 OutlinedTextField(value = stockState, onValueChange = { stockState = sanitizeCatalogText(it, 80) }, label = { Text(appText(Res.string.catalog_editor_stock_state)) }, singleLine = true, modifier = Modifier.weight(1f))
             }
             OutlinedTextField(value = prepTime, onValueChange = { prepTime = sanitizeDigits(it, 4) }, label = { Text(appText(Res.string.catalog_editor_prep_time)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            if (showFoodOptions) {
+                FoodOptionsEditor(
+                    groupName = foodGroupName,
+                    onGroupNameChange = { foodGroupName = sanitizeCatalogText(it, 80) },
+                    required = foodRequired,
+                    onRequiredChange = { foodRequired = it },
+                    maxSelections = foodMaxSelections,
+                    onMaxSelectionsChange = { foodMaxSelections = sanitizeDigits(it, 2) },
+                    optionLabel = foodOptionLabel,
+                    onOptionLabelChange = { foodOptionLabel = sanitizeCatalogText(it, 80) },
+                    optionPrice = foodOptionPrice,
+                    onOptionPriceChange = { foodOptionPrice = sanitizeDigits(it, 7) },
+                    optionAvailable = foodOptionAvailable,
+                    onOptionAvailableChange = { foodOptionAvailable = it },
+                )
+            }
             KeyValueRow(appText(Res.string.catalog_editor_availability), if (available) appText(Res.string.catalog_available) else appText(Res.string.catalog_paused))
             KeyValueRow(appText(Res.string.catalog_editor_photo_status), if (product.cameraVerified) appText(Res.string.catalog_camera_verified) else appText(Res.string.catalog_needs_photo))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = returnEligible, onCheckedChange = { returnEligible = it })
                 Text(appText(Res.string.catalog_editor_return_eligible))
             }
-            Text(appText(Res.string.catalog_editor_bargaining_disabled), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(appText(Res.string.catalog_editor_bargaining), style = MaterialTheme.typography.bodyMedium)
+                    Text(appText(Res.string.catalog_editor_bargaining_local_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = bargainingEnabled, onCheckedChange = { bargainingEnabled = it })
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
                     Text(appText(Res.string.catalog_editor_cancel))
@@ -323,7 +385,16 @@ private fun ProductEditorCard(
                                 stockSummary = stockState.trim().ifBlank { null },
                                 preparationTimeMinutes = prepTime.toIntOrNull(),
                                 returnEligible = returnEligible,
-                                bargainingEnabled = false,
+                                bargainingEnabled = bargainingEnabled,
+                                foodOptionGroups = buildFoodOptionGroups(
+                                    product = product,
+                                    groupName = foodGroupName,
+                                    required = foodRequired,
+                                    maxSelections = foodMaxSelections,
+                                    optionLabel = foodOptionLabel,
+                                    optionPrice = foodOptionPrice,
+                                    optionAvailable = foodOptionAvailable,
+                                ),
                             ),
                         )
                     },
@@ -336,6 +407,74 @@ private fun ProductEditorCard(
         }
     }
 }
+
+@Composable
+private fun FoodOptionsEditor(
+    groupName: String,
+    onGroupNameChange: (String) -> Unit,
+    required: Boolean,
+    onRequiredChange: (Boolean) -> Unit,
+    maxSelections: String,
+    onMaxSelectionsChange: (String) -> Unit,
+    optionLabel: String,
+    onOptionLabelChange: (String) -> Unit,
+    optionPrice: String,
+    onOptionPriceChange: (String) -> Unit,
+    optionAvailable: Boolean,
+    onOptionAvailableChange: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(appText(Res.string.catalog_editor_food_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(appText(Res.string.catalog_editor_food_local_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(
+            value = groupName,
+            onValueChange = onGroupNameChange,
+            label = { Text(appText(Res.string.catalog_editor_food_group_name)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = required, onCheckedChange = onRequiredChange)
+                Text(appText(Res.string.catalog_editor_food_required))
+            }
+            OutlinedTextField(
+                value = maxSelections,
+                onValueChange = onMaxSelectionsChange,
+                label = { Text(appText(Res.string.catalog_editor_food_max_selections)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = optionLabel,
+                onValueChange = onOptionLabelChange,
+                label = { Text(appText(Res.string.catalog_editor_food_option_label)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = optionPrice,
+                onValueChange = onOptionPriceChange,
+                label = { Text(appText(Res.string.catalog_editor_food_option_price)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = optionAvailable, onCheckedChange = onOptionAvailableChange)
+            Text(appText(Res.string.catalog_editor_food_option_available))
+        }
+    }
+}
+
+@Composable
+private fun CatalogProductSyncState.label(): String =
+    when (this) {
+        CatalogProductSyncState.SERVER_SYNCED -> appText(Res.string.catalog_synced_badge)
+        CatalogProductSyncState.LOCAL_DRAFT -> appText(Res.string.catalog_local_draft_badge)
+    }
 
 private enum class CatalogStatusFilter {
     Active,
@@ -388,3 +527,56 @@ private fun sanitizeDigits(input: String, maxLength: Int): String =
 
 private fun sanitizeCatalogText(input: String, maxLength: Int): String =
     input.filter { it.isLetterOrDigit() || it.isWhitespace() || it in "-_.'/,&()" }.take(maxLength)
+
+private fun isFoodOrPerishable(category: String, subcategory: String, product: CatalogProduct): Boolean {
+    val haystack = listOf(category, subcategory, product.category.orEmpty(), product.subcategory.orEmpty())
+        .joinToString(" ")
+        .lowercase()
+    return "food" in haystack ||
+        "meal" in haystack ||
+        "perishable" in haystack ||
+        "fresh" in haystack ||
+        "restaurant" in haystack ||
+        "aliment" in haystack ||
+        "repas" in haystack ||
+        "frais" in haystack
+}
+
+private fun buildFoodOptionGroups(
+    product: CatalogProduct,
+    groupName: String,
+    required: Boolean,
+    maxSelections: String,
+    optionLabel: String,
+    optionPrice: String,
+    optionAvailable: Boolean,
+): List<CatalogFoodOptionGroup> {
+    val safeGroupName = groupName.trim()
+    val safeOptionLabel = optionLabel.trim()
+    if (safeGroupName.isBlank() && safeOptionLabel.isBlank()) return emptyList()
+
+    val groupId = product.foodOptionGroups.firstOrNull()?.id ?: "local-food-group-${product.id}"
+    val optionId = product.foodOptionGroups.firstOrNull()?.options?.firstOrNull()?.id ?: "$groupId-option-1"
+    val options = if (safeOptionLabel.isBlank()) {
+        emptyList()
+    } else {
+        listOf(
+            CatalogFoodOption(
+                id = optionId,
+                label = safeOptionLabel,
+                priceDeltaCfa = optionPrice.toIntOrNull() ?: 0,
+                available = optionAvailable,
+            )
+        )
+    }
+
+    return listOf(
+        CatalogFoodOptionGroup(
+            id = groupId,
+            name = safeGroupName.ifBlank { safeOptionLabel },
+            required = required,
+            maxSelections = maxSelections.toIntOrNull()?.coerceAtLeast(1) ?: if (required) 1 else options.size.coerceAtLeast(1),
+            options = options,
+        )
+    )
+}

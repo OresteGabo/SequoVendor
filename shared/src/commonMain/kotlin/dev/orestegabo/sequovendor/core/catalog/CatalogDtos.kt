@@ -3,6 +3,7 @@ package dev.orestegabo.sequovendor.core.catalog
 import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.CatalogProductKind
 import dev.orestegabo.sequovendor.model.CatalogProductStatus
+import dev.orestegabo.sequovendor.model.CatalogProductSyncState
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -48,6 +49,8 @@ fun CatalogProductDto.toDomain(): CatalogProduct =
         stockCount = null,
         preparationTimeMinutes = null,
         returnEligible = false,
+        syncState = CatalogProductSyncState.SERVER_SYNCED,
+        foodOptionGroups = emptyList(),
     )
 
 private fun String.toCatalogProductStatus(): CatalogProductStatus =
