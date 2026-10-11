@@ -1,6 +1,7 @@
 package dev.orestegabo.sequovendor.core.catalog
 
 import dev.orestegabo.sequovendor.core.network.ApiResult
+import dev.orestegabo.sequovendor.core.network.ApiFailureKind
 import dev.orestegabo.sequovendor.core.network.safeApiCall
 import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.CatalogProductSyncState
@@ -14,6 +15,12 @@ interface VendorCatalogRepository {
         merchantId: String,
         product: CatalogProduct,
     ): ApiResult<VendorCatalogDraftResult>
+
+    suspend fun saveProduct(
+        merchantId: String,
+        product: CatalogProduct,
+    ): ApiResult<VendorCatalogDraftResult> =
+        saveDraftLocally(merchantId, product)
 
     suspend fun deactivateDraftLocally(
         merchantId: String,
@@ -31,6 +38,7 @@ data class VendorCatalogDraftResult(
 )
 
 enum class CatalogDraftState {
+    SERVER_SYNCED,
     LOCAL_DRAFT,
 }
 
@@ -52,6 +60,45 @@ class NetworkVendorCatalogRepository(
         val saved = product.asLocalDraft(merchantId)
         localDrafts = localDrafts.filterNot { it.id == saved.id } + saved
         return ApiResult.Success(VendorCatalogDraftResult(saved))
+    }
+
+    override suspend fun saveProduct(
+        merchantId: String,
+        product: CatalogProduct,
+    ): ApiResult<VendorCatalogDraftResult> {
+        if (merchantId.isBlank() || product.status == CatalogProductStatus.DRAFT) {
+            return saveDraftLocally(merchantId, product)
+        }
+
+        val serverResult = safeApiCall {
+            when {
+                product.isLocalOnly -> apiClient.createMerchantProduct(merchantId, product)
+                product.status == CatalogProductStatus.ACTIVE -> {
+                    apiClient.updateMerchantProduct(product)
+                    apiClient.activateMerchantProduct(product.id)
+                }
+                product.status == CatalogProductStatus.INACTIVE ||
+                    product.status == CatalogProductStatus.PAUSED -> {
+                    apiClient.updateMerchantProduct(product.copy(status = CatalogProductStatus.INACTIVE))
+                    apiClient.deactivateMerchantProduct(product.id)
+                }
+                else -> apiClient.updateMerchantProduct(product)
+            }.copy(syncState = CatalogProductSyncState.SERVER_SYNCED)
+        }
+
+        return when (serverResult) {
+            is ApiResult.Success -> {
+                localDrafts = localDrafts.filterNot { it.id == product.id || it.id == serverResult.value.id }
+                ApiResult.Success(VendorCatalogDraftResult(serverResult.value, CatalogDraftState.SERVER_SYNCED))
+            }
+            is ApiResult.Failure -> {
+                if (serverResult.error.kind.canFallbackToLocalDraft()) {
+                    saveDraftLocally(merchantId, product)
+                } else {
+                    serverResult
+                }
+            }
+        }
     }
 
     override suspend fun listProducts(merchantId: String): ApiResult<List<CatalogProduct>> =
@@ -80,6 +127,12 @@ class FakeVendorCatalogRepository(
         return ApiResult.Success(VendorCatalogDraftResult(saved))
     }
 
+    override suspend fun saveProduct(
+        merchantId: String,
+        product: CatalogProduct,
+    ): ApiResult<VendorCatalogDraftResult> =
+        saveDraftLocally(merchantId, product)
+
     override suspend fun listProducts(merchantId: String): ApiResult<List<CatalogProduct>> =
         listServerProducts(merchantId)
 }
@@ -92,3 +145,11 @@ private fun CatalogProduct.asLocalDraft(merchantId: String): CatalogProduct =
         updatedAt = null,
         syncState = CatalogProductSyncState.LOCAL_DRAFT,
     )
+
+private val CatalogProduct.isLocalOnly: Boolean
+    get() = syncState == CatalogProductSyncState.LOCAL_DRAFT || id.startsWith("local-product-")
+
+private fun ApiFailureKind.canFallbackToLocalDraft(): Boolean =
+    this == ApiFailureKind.NetworkUnavailable ||
+        this == ApiFailureKind.ServerUnavailable ||
+        this == ApiFailureKind.RateLimited

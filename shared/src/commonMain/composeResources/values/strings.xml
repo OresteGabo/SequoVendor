@@ -215,7 +215,7 @@
     <string name="order_mark_packed">Mark ready</string>
     <string name="order_handoff">Confirm handoff</string>
     <string name="catalog_title">Catalog read</string>
-    <string name="catalog_detail">Seller products are read-only until merchant catalog write endpoints are mobile-ready.</string>
+    <string name="catalog_detail">Seller products sync to the server when available, with local draft fallback.</string>
     <string name="catalog_camera_verified">Camera verified</string>
     <string name="catalog_needs_photo">Needs live photo</string>
     <string name="catalog_search">Search products</string>
@@ -236,10 +236,10 @@
     <string name="catalog_loading">Loading catalog...</string>
     <string name="catalog_empty">No products match these filters.</string>
     <string name="catalog_refresh">Refresh catalog</string>
-    <string name="catalog_edit">Edit draft</string>
-    <string name="catalog_editor_title">Product draft</string>
-    <string name="catalog_editor_local_badge">Local draft only</string>
-    <string name="catalog_editor_save">Save local draft</string>
+    <string name="catalog_edit">Edit product</string>
+    <string name="catalog_editor_title">Product editor</string>
+    <string name="catalog_editor_local_badge">Syncs when online</string>
+    <string name="catalog_editor_save">Save product</string>
     <string name="catalog_editor_cancel">Cancel</string>
     <string name="catalog_editor_name">Product name</string>
     <string name="catalog_editor_category">Category</string>
@@ -265,7 +265,9 @@
     <string name="catalog_editor_food_option_label">Option / topping</string>
     <string name="catalog_editor_food_option_price">Delta CFA</string>
     <string name="catalog_editor_food_option_available">Option available</string>
-    <string name="catalog_editor_saved">Saved as a local draft. Backend product writes are not connected yet.</string>
+    <string name="catalog_editor_saved">Server sync when available. Local draft is used only if the API is unavailable.</string>
+    <string name="catalog_editor_saved_server">Saved and synced with the server.</string>
+    <string name="catalog_editor_saved_local">Saved locally because the server is unavailable. It remains marked as a local draft.</string>
     <string name="store_title">Store status</string>
     <string name="store_detail">Hours are local until merchant store settings endpoints are available.</string>
     <string name="store_open">Open for orders</string>

@@ -60,6 +60,7 @@ import dev.orestegabo.sequovendor.core.auth.rememberAuthSessionStore
 import dev.orestegabo.sequovendor.core.auth.rememberBiometricAuthenticator
 import dev.orestegabo.sequovendor.core.auth.rememberSecureTokenStorage
 import dev.orestegabo.sequovendor.core.catalog.CatalogApiClient
+import dev.orestegabo.sequovendor.core.catalog.CatalogDraftState
 import dev.orestegabo.sequovendor.core.catalog.FakeVendorCatalogRepository
 import dev.orestegabo.sequovendor.core.catalog.NetworkVendorCatalogRepository
 import dev.orestegabo.sequovendor.core.catalog.VendorCatalogRepository
@@ -430,6 +431,8 @@ internal fun SequoVendorShell(
     var detailOffline by remember { mutableStateOf(false) }
     var catalogLoading by remember { mutableStateOf(false) }
     var catalogOffline by remember { mutableStateOf(false) }
+    var catalogSaveInProgress by remember { mutableStateOf(false) }
+    var lastCatalogSaveState by remember { mutableStateOf<CatalogDraftState?>(null) }
     var notificationsLoading by remember { mutableStateOf(false) }
     var notificationsOffline by remember { mutableStateOf(false) }
     var notificationActionFailed by remember { mutableStateOf(false) }
@@ -689,17 +692,22 @@ internal fun SequoVendorShell(
         }
     }
 
-    fun saveProductDraft(product: CatalogProduct) {
+    fun saveProduct(product: CatalogProduct) {
+        if (catalogSaveInProgress) return
         scope.launch {
-            when (val result = catalogRepository.saveDraftLocally(activeSession.merchantId, product)) {
+            catalogSaveInProgress = true
+            lastCatalogSaveState = null
+            when (val result = catalogRepository.saveProduct(activeSession.merchantId, product)) {
                 is ApiResult.Success -> {
                     products = products.filterNot { it.id == result.value.product.id } + result.value.product
-                    catalogOffline = false
+                    catalogOffline = result.value.state == CatalogDraftState.LOCAL_DRAFT && !activeSession.localMode
+                    lastCatalogSaveState = result.value.state
                 }
                 is ApiResult.Failure -> {
                     catalogOffline = true
                 }
             }
+            catalogSaveInProgress = false
         }
     }
 
@@ -884,7 +892,9 @@ internal fun SequoVendorShell(
                             isLoading = catalogLoading,
                             isOffline = catalogOffline,
                             onRefresh = { scope.launch { refreshCatalog(showLoading = true) } },
-                            onSaveProductDraft = ::saveProductDraft,
+                            onSaveProduct = ::saveProduct,
+                            saveInProgress = catalogSaveInProgress,
+                            lastSaveState = lastCatalogSaveState,
                             modifier = Modifier.fillMaxSize(),
                         )
                         VendorSection.Store -> StoreContent(

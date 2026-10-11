@@ -26,6 +26,42 @@ data class CatalogProductDto(
     val capturedAtLabel: String? = null,
 )
 
+@Serializable
+data class ManageCatalogProductRequest(
+    val merchantId: String,
+    val name: String,
+    val kind: String = "SellerSpecific",
+    val status: String = "ACTIVE",
+    val category: String? = null,
+    val subcategory: String? = null,
+    val detail: String? = null,
+    val basePriceCfa: Int? = null,
+    val optionHint: String? = null,
+    val originalPriceCfa: Int? = null,
+    val bargainingEnabled: Boolean = false,
+    val bargainFloorCfa: Int? = null,
+    val cameraVerified: Boolean = false,
+    val capturedAtLabel: String? = null,
+    val sortOrder: Int = 0,
+)
+
+@Serializable
+data class PatchCatalogProductRequest(
+    val name: String? = null,
+    val status: String? = null,
+    val category: String? = null,
+    val subcategory: String? = null,
+    val detail: String? = null,
+    val basePriceCfa: Int? = null,
+    val optionHint: String? = null,
+    val originalPriceCfa: Int? = null,
+    val bargainingEnabled: Boolean? = null,
+    val bargainFloorCfa: Int? = null,
+    val cameraVerified: Boolean? = null,
+    val capturedAtLabel: String? = null,
+    val sortOrder: Int? = null,
+)
+
 fun CatalogProductDto.toDomain(): CatalogProduct =
     CatalogProduct(
         id = id,
@@ -75,4 +111,54 @@ private fun String.toStockSummary(): String =
         "DRAFT" -> "Draft"
         "ARCHIVED" -> "Archived"
         else -> "Paused"
+    }
+
+fun CatalogProduct.toManageCatalogProductRequest(merchantId: String): ManageCatalogProductRequest =
+    ManageCatalogProductRequest(
+        merchantId = merchantId,
+        name = name,
+        kind = kind.toApiValue(),
+        status = status.toApiValue(),
+        category = category,
+        subcategory = subcategory,
+        detail = detail,
+        basePriceCfa = priceCfa,
+        optionHint = optionHint,
+        originalPriceCfa = originalPriceCfa,
+        bargainingEnabled = bargainingEnabled,
+        bargainFloorCfa = bargainFloorCfa,
+        cameraVerified = cameraVerified,
+        capturedAtLabel = capturedAtLabel,
+    )
+
+fun CatalogProduct.toPatchCatalogProductRequest(): PatchCatalogProductRequest =
+    PatchCatalogProductRequest(
+        name = name,
+        status = status.toApiValue(),
+        category = category,
+        subcategory = subcategory,
+        detail = detail,
+        basePriceCfa = priceCfa,
+        optionHint = optionHint,
+        originalPriceCfa = originalPriceCfa,
+        bargainingEnabled = bargainingEnabled,
+        bargainFloorCfa = bargainFloorCfa,
+        cameraVerified = cameraVerified,
+        capturedAtLabel = capturedAtLabel,
+    )
+
+private fun CatalogProductKind.toApiValue(): String =
+    when (this) {
+        CatalogProductKind.SellerSpecific -> "SellerSpecific"
+        CatalogProductKind.GenericSealedItem -> "GenericSealedItem"
+    }
+
+private fun CatalogProductStatus.toApiValue(): String =
+    when (this) {
+        CatalogProductStatus.ACTIVE -> "ACTIVE"
+        CatalogProductStatus.INACTIVE,
+        CatalogProductStatus.PAUSED,
+        CatalogProductStatus.DRAFT,
+        -> "INACTIVE"
+        CatalogProductStatus.ARCHIVED -> "ARCHIVED"
     }

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.core.catalog.CatalogDraftState
 import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.CatalogFoodOption
 import dev.orestegabo.sequovendor.model.CatalogFoodOptionGroup
@@ -61,7 +62,6 @@ import sequovendor.shared.generated.resources.catalog_editor_food_option_label
 import sequovendor.shared.generated.resources.catalog_editor_food_option_price
 import sequovendor.shared.generated.resources.catalog_editor_food_required
 import sequovendor.shared.generated.resources.catalog_editor_food_title
-import sequovendor.shared.generated.resources.catalog_editor_local_badge
 import sequovendor.shared.generated.resources.catalog_editor_name
 import sequovendor.shared.generated.resources.catalog_editor_original_price
 import sequovendor.shared.generated.resources.catalog_editor_photo_policy
@@ -71,6 +71,8 @@ import sequovendor.shared.generated.resources.catalog_editor_price
 import sequovendor.shared.generated.resources.catalog_editor_return_eligible
 import sequovendor.shared.generated.resources.catalog_editor_save
 import sequovendor.shared.generated.resources.catalog_editor_saved
+import sequovendor.shared.generated.resources.catalog_editor_saved_local
+import sequovendor.shared.generated.resources.catalog_editor_saved_server
 import sequovendor.shared.generated.resources.catalog_local_draft_badge
 import sequovendor.shared.generated.resources.catalog_editor_stock_count
 import sequovendor.shared.generated.resources.catalog_editor_stock_state
@@ -99,14 +101,15 @@ internal fun CatalogContent(
     isLoading: Boolean,
     isOffline: Boolean,
     onRefresh: () -> Unit,
-    onSaveProductDraft: (CatalogProduct) -> Unit,
+    onSaveProduct: (CatalogProduct) -> Unit,
+    saveInProgress: Boolean,
+    lastSaveState: CatalogDraftState?,
     modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<CatalogStatusFilter?>(null) }
     var editingProduct by remember { mutableStateOf<CatalogProduct?>(null) }
-    var localSavedNotice by remember { mutableStateOf(false) }
     val categories = remember(products) {
         products.mapNotNull { it.category?.takeIf(String::isNotBlank) }.distinct().sorted()
     }
@@ -125,8 +128,12 @@ internal fun CatalogContent(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(appText(Res.string.catalog_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(appText(Res.string.catalog_detail), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (localSavedNotice) {
-                    Text(appText(Res.string.catalog_editor_saved), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                lastSaveState?.let { state ->
+                    Text(
+                        appText(state.savedLabel()),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
         }
@@ -137,10 +144,10 @@ internal fun CatalogContent(
                     product = product,
                     onCancel = { editingProduct = null },
                     onSave = { updated ->
-                        onSaveProductDraft(updated)
+                        onSaveProduct(updated)
                         editingProduct = null
-                        localSavedNotice = true
                     },
+                    isSaving = saveInProgress,
                 )
             }
         }
@@ -280,6 +287,7 @@ private fun ProductEditorCard(
     product: CatalogProduct,
     onCancel: () -> Unit,
     onSave: (CatalogProduct) -> Unit,
+    isSaving: Boolean,
 ) {
     var name by remember(product.id) { mutableStateOf(product.name) }
     var category by remember(product.id) { mutableStateOf(product.category.orEmpty()) }
@@ -312,7 +320,7 @@ private fun ProductEditorCard(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(appText(Res.string.catalog_editor_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(appText(Res.string.catalog_editor_local_badge), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Text(appText(Res.string.catalog_editor_saved), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
                 Switch(checked = available, onCheckedChange = { available = it })
             }
@@ -398,7 +406,7 @@ private fun ProductEditorCard(
                             ),
                         )
                     },
-                    enabled = canSave,
+                    enabled = canSave && !isSaving,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(appText(Res.string.catalog_editor_save))
@@ -474,6 +482,12 @@ private fun CatalogProductSyncState.label(): String =
     when (this) {
         CatalogProductSyncState.SERVER_SYNCED -> appText(Res.string.catalog_synced_badge)
         CatalogProductSyncState.LOCAL_DRAFT -> appText(Res.string.catalog_local_draft_badge)
+    }
+
+private fun CatalogDraftState.savedLabel() =
+    when (this) {
+        CatalogDraftState.SERVER_SYNCED -> Res.string.catalog_editor_saved_server
+        CatalogDraftState.LOCAL_DRAFT -> Res.string.catalog_editor_saved_local
     }
 
 private enum class CatalogStatusFilter {

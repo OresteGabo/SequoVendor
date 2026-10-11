@@ -215,7 +215,7 @@
     <string name="order_mark_packed">Marquer prete</string>
     <string name="order_handoff">Confirmer la remise</string>
     <string name="catalog_title">Lecture catalogue</string>
-    <string name="catalog_detail">Les produits vendeur restent en lecture seule jusqu'aux endpoints catalogue marchand mobiles.</string>
+    <string name="catalog_detail">Les produits vendeur se synchronisent avec le serveur si disponible, avec brouillon local en secours.</string>
     <string name="catalog_camera_verified">Photo verifiee</string>
     <string name="catalog_needs_photo">Photo live requise</string>
     <string name="catalog_search">Rechercher des produits</string>
@@ -236,10 +236,10 @@
     <string name="catalog_loading">Chargement du catalogue...</string>
     <string name="catalog_empty">Aucun produit ne correspond aux filtres.</string>
     <string name="catalog_refresh">Actualiser le catalogue</string>
-    <string name="catalog_edit">Modifier brouillon</string>
-    <string name="catalog_editor_title">Brouillon produit</string>
-    <string name="catalog_editor_local_badge">Brouillon local seulement</string>
-    <string name="catalog_editor_save">Enregistrer localement</string>
+    <string name="catalog_edit">Modifier produit</string>
+    <string name="catalog_editor_title">Edition produit</string>
+    <string name="catalog_editor_local_badge">Synchronise en ligne</string>
+    <string name="catalog_editor_save">Enregistrer produit</string>
     <string name="catalog_editor_cancel">Annuler</string>
     <string name="catalog_editor_name">Nom du produit</string>
     <string name="catalog_editor_category">Categorie</string>
@@ -265,7 +265,9 @@
     <string name="catalog_editor_food_option_label">Option / supplement</string>
     <string name="catalog_editor_food_option_price">Delta CFA</string>
     <string name="catalog_editor_food_option_available">Option disponible</string>
-    <string name="catalog_editor_saved">Enregistre comme brouillon local. Les ecritures produit backend ne sont pas encore connectees.</string>
+    <string name="catalog_editor_saved">Synchronisation serveur si disponible. Un brouillon local est utilise seulement si l'API est indisponible.</string>
+    <string name="catalog_editor_saved_server">Enregistre et synchronise avec le serveur.</string>
+    <string name="catalog_editor_saved_local">Enregistre localement car le serveur est indisponible. Il reste marque comme brouillon local.</string>
     <string name="store_title">Statut boutique</string>
     <string name="store_detail">Les horaires sont locaux jusqu'aux endpoints reglages boutique marchand.</string>
     <string name="store_open">Ouverte aux commandes</string>
