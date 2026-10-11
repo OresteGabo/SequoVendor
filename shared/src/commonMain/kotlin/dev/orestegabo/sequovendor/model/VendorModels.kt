@@ -257,6 +257,31 @@ data class CatalogCategory(
 )
 
 @Serializable
+data class VendorNegotiationThread(
+    val id: String,
+    val merchantId: String,
+    val productId: String,
+    val productName: String,
+    val customerOfferCfa: Int,
+    val sellerCounterCfa: Int? = null,
+    val customerAttemptsRemaining: Int = 2,
+    val merchantAttemptsRemaining: Int = 3,
+    val lockExpiresAt: String? = null,
+    val status: VendorNegotiationStatus = VendorNegotiationStatus.CUSTOMER_OFFERED,
+    val rejectionReason: String? = null,
+    val localDemo: Boolean = true,
+)
+
+@Serializable
+enum class VendorNegotiationStatus {
+    CUSTOMER_OFFERED,
+    MERCHANT_COUNTERED,
+    ACCEPTED,
+    REJECTED,
+    EXPIRED,
+}
+
+@Serializable
 data class StoreAvailabilityState(
     val merchantId: String? = null,
     val open: Boolean,
@@ -566,6 +591,40 @@ object DemoVendorData {
             updatedAt = "2026-10-10T12:00:00Z",
             stockCount = null,
             returnEligible = true,
+        ),
+    )
+
+    fun negotiations() = listOf(
+        VendorNegotiationThread(
+            id = "neg-demo-001",
+            merchantId = "merchant-demo-sequo",
+            productId = "prod-demo-002",
+            productName = "Local cassava flour",
+            customerOfferCfa = 1_900,
+            customerAttemptsRemaining = 2,
+            merchantAttemptsRemaining = 3,
+        ),
+        VendorNegotiationThread(
+            id = "neg-demo-002",
+            merchantId = "merchant-demo-sequo",
+            productId = "prod-demo-004",
+            productName = "New supplier basket",
+            customerOfferCfa = 10_000,
+            sellerCounterCfa = 11_000,
+            customerAttemptsRemaining = 1,
+            merchantAttemptsRemaining = 2,
+            status = VendorNegotiationStatus.MERCHANT_COUNTERED,
+        ),
+        VendorNegotiationThread(
+            id = "neg-demo-003",
+            merchantId = "merchant-demo-sequo",
+            productId = "prod-demo-001",
+            productName = "Fresh tilapia box",
+            customerOfferCfa = 4_000,
+            customerAttemptsRemaining = 2,
+            merchantAttemptsRemaining = 3,
+            lockExpiresAt = "2026-10-12T18:00:00Z",
+            status = VendorNegotiationStatus.ACCEPTED,
         ),
     )
 

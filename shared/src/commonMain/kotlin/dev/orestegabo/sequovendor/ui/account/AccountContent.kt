@@ -13,14 +13,21 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +40,11 @@ import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.StoreAvailabilityState
 import dev.orestegabo.sequovendor.model.VendorSession
+import dev.orestegabo.sequovendor.model.VendorNegotiationStatus
+import dev.orestegabo.sequovendor.model.VendorNegotiationThread
+import dev.orestegabo.sequovendor.model.formatCfa
+import dev.orestegabo.sequovendor.model.formatCfaOrDash
+import dev.orestegabo.sequovendor.model.formatIsoTimestampOrDash
 import dev.orestegabo.sequovendor.ui.components.KeyValueRow
 import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorChip
@@ -52,6 +64,26 @@ import sequovendor.shared.generated.resources.account_manage_store
 import sequovendor.shared.generated.resources.account_merchant_context
 import sequovendor.shared.generated.resources.account_merchant_id
 import sequovendor.shared.generated.resources.account_notifications_entry
+import sequovendor.shared.generated.resources.account_negotiation_accept
+import sequovendor.shared.generated.resources.account_negotiation_counter
+import sequovendor.shared.generated.resources.account_negotiation_counter_placeholder
+import sequovendor.shared.generated.resources.account_negotiation_customer_offer
+import sequovendor.shared.generated.resources.account_negotiation_demo
+import sequovendor.shared.generated.resources.account_negotiation_empty
+import sequovendor.shared.generated.resources.account_negotiation_error
+import sequovendor.shared.generated.resources.account_negotiation_lock_expiry
+import sequovendor.shared.generated.resources.account_negotiation_product
+import sequovendor.shared.generated.resources.account_negotiation_reason
+import sequovendor.shared.generated.resources.account_negotiation_reject
+import sequovendor.shared.generated.resources.account_negotiation_seller_counter
+import sequovendor.shared.generated.resources.account_negotiation_status
+import sequovendor.shared.generated.resources.account_negotiation_attempts
+import sequovendor.shared.generated.resources.account_negotiation_status_accepted
+import sequovendor.shared.generated.resources.account_negotiation_status_countered
+import sequovendor.shared.generated.resources.account_negotiation_status_customer_offer
+import sequovendor.shared.generated.resources.account_negotiation_status_expired
+import sequovendor.shared.generated.resources.account_negotiation_status_rejected
+import sequovendor.shared.generated.resources.account_negotiations
 import sequovendor.shared.generated.resources.account_offline
 import sequovendor.shared.generated.resources.account_open_notifications
 import sequovendor.shared.generated.resources.account_online
@@ -86,6 +118,12 @@ internal fun AccountContent(
     onAvailabilityChange: (Boolean) -> Unit,
     onStoreClick: () -> Unit,
     onNotificationsClick: () -> Unit,
+    negotiations: List<VendorNegotiationThread>,
+    negotiationActionInProgressId: String?,
+    negotiationActionFailed: Boolean,
+    onAcceptNegotiation: (VendorNegotiationThread) -> Unit,
+    onRejectNegotiation: (VendorNegotiationThread, String) -> Unit,
+    onCounterNegotiation: (VendorNegotiationThread, Int) -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -197,6 +235,17 @@ internal fun AccountContent(
         }
 
         item {
+            NegotiationsCard(
+                negotiations = negotiations,
+                actionInProgressId = negotiationActionInProgressId,
+                actionFailed = negotiationActionFailed,
+                onAccept = onAcceptNegotiation,
+                onReject = onRejectNegotiation,
+                onCounter = onCounterNegotiation,
+            )
+        }
+
+        item {
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -236,9 +285,109 @@ internal fun AccountContent(
 }
 
 @Composable
+private fun NegotiationsCard(
+    negotiations: List<VendorNegotiationThread>,
+    actionInProgressId: String?,
+    actionFailed: Boolean,
+    onAccept: (VendorNegotiationThread) -> Unit,
+    onReject: (VendorNegotiationThread, String) -> Unit,
+    onCounter: (VendorNegotiationThread, Int) -> Unit,
+) {
+    val rejectReasons = remember { mutableStateMapOf<String, String>() }
+    val counterAmounts = remember { mutableStateMapOf<String, String>() }
+
+    VendorCard {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(appText(Res.string.account_negotiations), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(appText(Res.string.account_negotiation_demo), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (actionFailed) {
+                Text(appText(Res.string.account_negotiation_error), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            if (negotiations.isEmpty()) {
+                Text(appText(Res.string.account_negotiation_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            negotiations.forEach { thread ->
+                var expanded by remember(thread.id) { mutableStateOf(false) }
+                val busy = actionInProgressId == thread.id
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    KeyValueRow(appText(Res.string.account_negotiation_product), thread.productName)
+                    KeyValueRow(appText(Res.string.account_negotiation_customer_offer), thread.customerOfferCfa.formatCfa())
+                    KeyValueRow(appText(Res.string.account_negotiation_seller_counter), thread.sellerCounterCfa.formatCfaOrDash())
+                    KeyValueRow(appText(Res.string.account_negotiation_attempts), "${thread.merchantAttemptsRemaining}/3")
+                    thread.lockExpiresAt?.let {
+                        KeyValueRow(appText(Res.string.account_negotiation_lock_expiry), it.formatIsoTimestampOrDash())
+                    }
+                    KeyValueRow(appText(Res.string.account_negotiation_status), thread.status.label())
+                    OutlinedButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
+                        Text(appText(Res.string.account_negotiations))
+                    }
+                    if (expanded) {
+                        OutlinedTextField(
+                            value = counterAmounts[thread.id].orEmpty(),
+                            onValueChange = { counterAmounts[thread.id] = it.filter(Char::isDigit).take(9) },
+                            label = { Text(appText(Res.string.account_negotiation_counter_placeholder)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = rejectReasons[thread.id].orEmpty(),
+                            onValueChange = { rejectReasons[thread.id] = sanitizeReason(it) },
+                            label = { Text(appText(Res.string.account_negotiation_reason)) },
+                            minLines = 2,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { onAccept(thread) },
+                                enabled = !busy && thread.status.allowsMerchantAction,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(appText(Res.string.account_negotiation_accept))
+                            }
+                            OutlinedButton(
+                                onClick = { counterAmounts[thread.id]?.toIntOrNull()?.let { onCounter(thread, it) } },
+                                enabled = !busy && thread.status.allowsMerchantAction && counterAmounts[thread.id]?.toIntOrNull() != null,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text(appText(Res.string.account_negotiation_counter))
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { onReject(thread, rejectReasons[thread.id].orEmpty()) },
+                            enabled = !busy && thread.status.allowsMerchantAction && rejectReasons[thread.id].orEmpty().isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(appText(Res.string.account_negotiation_reject))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun PaymentChip(label: String) {
     AssistChip(onClick = {}, label = { Text(label) })
 }
+
+@Composable
+private fun VendorNegotiationStatus.label(): String =
+    when (this) {
+        VendorNegotiationStatus.CUSTOMER_OFFERED -> appText(Res.string.account_negotiation_status_customer_offer)
+        VendorNegotiationStatus.MERCHANT_COUNTERED -> appText(Res.string.account_negotiation_status_countered)
+        VendorNegotiationStatus.ACCEPTED -> appText(Res.string.account_negotiation_status_accepted)
+        VendorNegotiationStatus.REJECTED -> appText(Res.string.account_negotiation_status_rejected)
+        VendorNegotiationStatus.EXPIRED -> appText(Res.string.account_negotiation_status_expired)
+    }
+
+private val VendorNegotiationStatus.allowsMerchantAction: Boolean
+    get() = this == VendorNegotiationStatus.CUSTOMER_OFFERED ||
+        this == VendorNegotiationStatus.MERCHANT_COUNTERED
+
+private fun sanitizeReason(input: String): String =
+    input.filter { it.isLetterOrDigit() || it.isWhitespace() || it in "-_.'/,&()" }.take(120)
 
 private fun String?.providerLabel(): String =
     when (this?.uppercase()) {
