@@ -143,8 +143,14 @@
     <string name="home_check_catalog">Verifier les photos catalogue</string>
     <string name="home_store_online">Boutique en ligne</string>
     <string name="home_store_offline">Boutique hors ligne</string>
+    <string name="common_not_available_yet">Pas encore disponible</string>
     <string name="dashboard_store_status">Statut boutique</string>
     <string name="dashboard_accepted">Acceptees</string>
+    <string name="dashboard_finance_visibility">Ventes et paiements</string>
+    <string name="dashboard_sales_today">Ventes du jour</string>
+    <string name="dashboard_merchant_net_pending">Net marchand en attente</string>
+    <string name="dashboard_returns_awaiting">Retours a traiter</string>
+    <string name="dashboard_settlement_state">Etat paiement / reglement</string>
     <string name="dashboard_sla_warnings">Alertes SLA</string>
     <string name="dashboard_response_due">Reponse avant</string>
     <string name="dashboard_packing_due">Emballage avant</string>
@@ -314,6 +320,7 @@
     <string name="account_api_unreachable">L'API Sequo est actuellement inaccessible</string>
     <string name="account_api_check">Verifier l'API</string>
     <string name="account_notifications_entry">Preferences notifications</string>
+    <string name="account_sales_payments">Visibilite ventes et paiements</string>
     <string name="account_negotiations">Negociations</string>
     <string name="account_negotiation_demo">Boite demo locale jusqu'aux endpoints negociation vendeur.</string>
     <string name="account_negotiation_empty">Aucune negociation.</string>

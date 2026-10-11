@@ -19,7 +19,7 @@ Implemented in the app:
 - Production-style Kotlin Multiplatform app shell inspired by the Sequo customer app: splash, onboarding, drawer/settings language and theme controls, operational bottom navigation, dense seller dashboard, safe error panels, and EN/FR localized strings.
 - Auth flow with Google social sign-in, email sign-in/sign-up surfaces, secure token/session storage, refresh-session restore, logout, `/api/auth/me`, merchant-role gating, and a clear local/demo fallback when backend credentials or merchant scope are unavailable.
 - Network layer using `/api`, JSON content type, bearer auth, one refresh-and-retry attempt on `401`, `Retry-After` parsing for `429`, typed safe failures, and no raw backend debug messages in UI.
-- Dashboard that loads merchant sub-orders from `GET /api/merchant/sub-orders?merchantId=...` when authenticated, derives pending/accepted/preparing/ready counts, shows SLA warnings, recent orders, quick actions, store state, and API connection state.
+- Dashboard that loads merchant sub-orders from `GET /api/merchant/sub-orders?merchantId=...` when authenticated, derives pending/accepted/preparing/ready counts, shows sales/net visibility from real sub-order fields, marks return/settlement state as not available where no mobile read model exists, and shows SLA warnings, recent orders, quick actions, store state, and API connection state.
 - Orders list with localized tabs/filters for new, accepted, preparing, ready, completed, and rejected/cancelled orders. Cards show code, status, CFA subtotal/net/commission, timestamps, SLA deadlines, package count, and safe next actions.
 - Order detail with lifecycle timeline, financial summary, SLA panel from `GET /api/merchant/sub-orders/{id}/sla`, package count entry, rejection reason handling, duplicate-submit protection, and action calls to the active merchant fulfillment endpoints.
 - Store availability and weekly opening-hours UI behind `VendorStoreRepository`, including open/closed toggle, temporary closure reason, customer-facing preview, weekday rows, copy-Monday-to-weekdays, temporary exceptions, and validation.
@@ -35,6 +35,7 @@ Mocked or local for now:
 - Catalog editor saves local drafts through the repository interface. It intentionally does not call global catalog write routes because seller-scoped product management is not mobile-ready.
 - Product media/camera verification is represented in UI/model state only; no mobile camera upload endpoint is called.
 - Notification device registration support exists in the API client, but actual Firebase client token provisioning is not wired in the shared UI.
+- Return and settlement visibility currently uses "not available yet" placeholders in dashboard/account where merchant-scoped mobile data is not exposed to the app. No fake return/payment values are shown.
 
 Known backend gaps:
 
@@ -44,6 +45,8 @@ Known backend gaps:
 - Seller product media endpoints are missing. Needed: real-time camera capture upload/evidence, approved generic sealed-item catalog reference attachment, media freshness/verification read state, and server-side rejection of gallery uploads for seller-specific products.
 - Merchant store settings endpoints are missing. Needed: `GET/PUT /api/merchant/store-availability` or `GET/PUT /api/merchant/store-settings` with open/closed state, weekly hours, temporary exceptions, closure note, effective availability, and owner/staff scope validation.
 - Richer order detail would benefit from merchant line-item snapshots, option/variant labels, safe handoff/rider context, and package-label data.
+- Merchant return visibility is missing. Needed: a merchant-scoped returns endpoint or read model that exposes returns affecting the merchant's sub-orders, return status, seller action needed, collection/drop-off state, and any settlement hold.
+- Merchant settlement visibility needs a mobile-ready summary/read model wired to the app. The API exposes `/api/settlements/merchant-payouts`, but the vendor UI still needs scoped summary/status data per merchant/sub-order before showing payout state as real.
 
 ## Source Of Truth
 
@@ -161,6 +164,12 @@ Available but should be treated carefully and scoped to merchant finance UI.
 | Method | Path | Query | Use In Vendor App |
 | --- | --- | --- | --- |
 | `GET` | `/api/settlements/merchant-payouts` | `merchantId`, optional `status` | Read merchant payout state when merchant role/scope allows it. |
+
+Current SequoVendor implementation does not call this endpoint yet. Dashboard/account show order-derived sales/net values from merchant sub-orders, while settlement state remains localized as "not available yet" until a mobile-ready payout summary is wired.
+
+### Returns Read
+
+Return flows exist in the backend for customer/admin/relay operations, but SequoVendor has no merchant-scoped return list/status endpoint to call safely. Dashboard/account therefore show returns awaiting action as "not available yet" instead of inventing return counts.
 
 ## API Endpoints Missing Or Not Mobile-Ready
 

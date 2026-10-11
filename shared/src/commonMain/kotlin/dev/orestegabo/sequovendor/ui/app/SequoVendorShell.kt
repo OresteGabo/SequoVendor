@@ -88,6 +88,7 @@ import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.DemoVendorData
 import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
+import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
 import dev.orestegabo.sequovendor.model.OpeningHoursDay
 import dev.orestegabo.sequovendor.model.OpeningHoursException
 import dev.orestegabo.sequovendor.model.VendorNotification
@@ -436,6 +437,15 @@ internal fun SequoVendorShell(
     var includeArchivedNotifications by remember { mutableStateOf(false) }
     var negotiationActionInProgressId by remember { mutableStateOf<String?>(null) }
     var negotiationActionFailed by remember { mutableStateOf(false) }
+    val salesToday = dashboardOrders.count { it.status != MerchantSubOrderStatus.REJECTED && it.status != MerchantSubOrderStatus.CANCELLED }
+    val merchantNetPendingCfa = dashboardOrders
+        .filter {
+            it.status == MerchantSubOrderStatus.ACCEPTED ||
+                it.status == MerchantSubOrderStatus.PREPARING ||
+                it.status == MerchantSubOrderStatus.PACKED_READY ||
+                it.status == MerchantSubOrderStatus.HANDED_TO_COURIER
+        }
+        .sumOf { it.merchantNetCfa }
     val storeRepository: VendorStoreRepository = remember { LocalVendorStoreRepository(store) }
     val negotiationRepository: VendorNegotiationRepository = remember { FakeVendorNegotiationRepository(localNegotiations) }
     val catalogRepository: VendorCatalogRepository = remember(activeSession.accessToken, activeSession.localMode) {
@@ -920,6 +930,8 @@ internal fun SequoVendorShell(
                             onAcceptNegotiation = { thread -> handleNegotiationAction(thread, negotiationRepository::accept) },
                             onRejectNegotiation = ::rejectNegotiation,
                             onCounterNegotiation = ::counterNegotiation,
+                            salesToday = salesToday,
+                            merchantNetPendingCfa = merchantNetPendingCfa,
                             onLogout = {
                                 scope.launch {
                                     authRepository.logout()

@@ -93,9 +93,15 @@ import sequovendor.shared.generated.resources.account_payment_mobile_money
 import sequovendor.shared.generated.resources.account_payments_accepted
 import sequovendor.shared.generated.resources.account_profile
 import sequovendor.shared.generated.resources.account_provider
+import sequovendor.shared.generated.resources.account_sales_payments
 import sequovendor.shared.generated.resources.account_status
 import sequovendor.shared.generated.resources.account_theme
 import sequovendor.shared.generated.resources.account_title
+import sequovendor.shared.generated.resources.common_not_available_yet
+import sequovendor.shared.generated.resources.dashboard_merchant_net_pending
+import sequovendor.shared.generated.resources.dashboard_returns_awaiting
+import sequovendor.shared.generated.resources.dashboard_sales_today
+import sequovendor.shared.generated.resources.dashboard_settlement_state
 import sequovendor.shared.generated.resources.drawer_theme_dark
 import sequovendor.shared.generated.resources.drawer_theme_light
 import sequovendor.shared.generated.resources.drawer_theme_system
@@ -124,6 +130,8 @@ internal fun AccountContent(
     onAcceptNegotiation: (VendorNegotiationThread) -> Unit,
     onRejectNegotiation: (VendorNegotiationThread, String) -> Unit,
     onCounterNegotiation: (VendorNegotiationThread, Int) -> Unit,
+    salesToday: Int,
+    merchantNetPendingCfa: Int,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -184,6 +192,21 @@ internal fun AccountContent(
                     PaymentChip(appText(Res.string.account_payment_mobile_money))
                     PaymentChip(appText(Res.string.account_payment_card))
                     PaymentChip(appText(Res.string.account_payment_cash))
+                }
+            }
+        }
+
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(appText(Res.string.account_sales_payments), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    KeyValueRow(appText(Res.string.dashboard_sales_today), salesToday.toString())
+                    KeyValueRow(appText(Res.string.dashboard_merchant_net_pending), merchantNetPendingCfa.formatCfa())
+                    KeyValueRow(appText(Res.string.dashboard_returns_awaiting), appText(Res.string.common_not_available_yet))
+                    KeyValueRow(appText(Res.string.dashboard_settlement_state), appText(Res.string.common_not_available_yet))
                 }
             }
         }

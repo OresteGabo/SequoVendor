@@ -43,7 +43,9 @@ import sequovendor.shared.generated.resources.dashboard_api_error
 import sequovendor.shared.generated.resources.dashboard_api_local
 import sequovendor.shared.generated.resources.dashboard_close_store
 import sequovendor.shared.generated.resources.dashboard_edit_catalog
+import sequovendor.shared.generated.resources.dashboard_finance_visibility
 import sequovendor.shared.generated.resources.dashboard_last_updated
+import sequovendor.shared.generated.resources.dashboard_merchant_net_pending
 import sequovendor.shared.generated.resources.dashboard_no_recent_orders
 import sequovendor.shared.generated.resources.dashboard_no_sla_warnings
 import sequovendor.shared.generated.resources.dashboard_open_store
@@ -51,9 +53,13 @@ import sequovendor.shared.generated.resources.dashboard_packing_due
 import sequovendor.shared.generated.resources.dashboard_quick_actions
 import sequovendor.shared.generated.resources.dashboard_recent_orders
 import sequovendor.shared.generated.resources.dashboard_response_due
+import sequovendor.shared.generated.resources.dashboard_returns_awaiting
+import sequovendor.shared.generated.resources.dashboard_sales_today
+import sequovendor.shared.generated.resources.dashboard_settlement_state
 import sequovendor.shared.generated.resources.dashboard_sla_warnings
 import sequovendor.shared.generated.resources.dashboard_store_status
 import sequovendor.shared.generated.resources.dashboard_view_pending
+import sequovendor.shared.generated.resources.common_not_available_yet
 import sequovendor.shared.generated.resources.home_detail
 import sequovendor.shared.generated.resources.home_pending
 import sequovendor.shared.generated.resources.home_products_attention
@@ -96,8 +102,17 @@ internal fun DashboardContent(
     val accepted = orders.count { it.status == MerchantSubOrderStatus.ACCEPTED }
     val preparing = orders.count { it.status == MerchantSubOrderStatus.PREPARING }
     val ready = orders.count { it.status == MerchantSubOrderStatus.PACKED_READY }
+    val salesToday = orders.count { it.status != MerchantSubOrderStatus.REJECTED && it.status != MerchantSubOrderStatus.CANCELLED }
     val todayNet = orders
         .filter { it.status != MerchantSubOrderStatus.REJECTED && it.status != MerchantSubOrderStatus.CANCELLED }
+        .sumOf { it.merchantNetCfa }
+    val merchantNetPending = orders
+        .filter {
+            it.status == MerchantSubOrderStatus.ACCEPTED ||
+                it.status == MerchantSubOrderStatus.PREPARING ||
+                it.status == MerchantSubOrderStatus.PACKED_READY ||
+                it.status == MerchantSubOrderStatus.HANDED_TO_COURIER
+        }
         .sumOf { it.merchantNetCfa }
     val productsNeedingPhotos = products.count { !it.cameraVerified }
     val responseWarnings = orders
@@ -175,6 +190,21 @@ internal fun DashboardContent(
                     }
                     Text(todayNet.formatCfa(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     KeyValueRow(appText(Res.string.home_products_attention), productsNeedingPhotos.toString())
+                }
+            }
+        }
+
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(appText(Res.string.dashboard_finance_visibility), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    KeyValueRow(appText(Res.string.dashboard_sales_today), salesToday.toString())
+                    KeyValueRow(appText(Res.string.dashboard_merchant_net_pending), merchantNetPending.formatCfa())
+                    KeyValueRow(appText(Res.string.dashboard_returns_awaiting), appText(Res.string.common_not_available_yet))
+                    KeyValueRow(appText(Res.string.dashboard_settlement_state), appText(Res.string.common_not_available_yet))
                 }
             }
         }
