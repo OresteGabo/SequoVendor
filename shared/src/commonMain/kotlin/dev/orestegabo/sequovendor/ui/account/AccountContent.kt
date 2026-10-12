@@ -97,6 +97,8 @@ import sequovendor.shared.generated.resources.account_sales_payments
 import sequovendor.shared.generated.resources.account_status
 import sequovendor.shared.generated.resources.account_theme
 import sequovendor.shared.generated.resources.account_title
+import sequovendor.shared.generated.resources.admin_login_title
+import sequovendor.shared.generated.resources.admin_login_warning
 import sequovendor.shared.generated.resources.common_not_available_yet
 import sequovendor.shared.generated.resources.dashboard_merchant_net_pending
 import sequovendor.shared.generated.resources.dashboard_returns_awaiting
@@ -133,6 +135,8 @@ internal fun AccountContent(
     salesToday: Int,
     merchantNetPendingCfa: Int,
     onLogout: () -> Unit,
+    pendingAdminLoginRequestCount: Int = 0,
+    onAdminLoginRequestsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -252,6 +256,20 @@ internal fun AccountContent(
                     Text(appText(Res.string.account_notifications_entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     OutlinedButton(onClick = onNotificationsClick, modifier = Modifier.fillMaxWidth()) {
                         Text(appText(Res.string.account_open_notifications))
+                    }
+                }
+            }
+        }
+
+        if (pendingAdminLoginRequestCount > 0) {
+            item {
+                VendorCard {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(appText(Res.string.admin_login_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(appText(Res.string.admin_login_warning), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedButton(onClick = onAdminLoginRequestsClick, modifier = Modifier.fillMaxWidth()) {
+                            Text("${appText(Res.string.admin_login_title)} ($pendingAdminLoginRequestCount)")
+                        }
                     }
                 }
             }
