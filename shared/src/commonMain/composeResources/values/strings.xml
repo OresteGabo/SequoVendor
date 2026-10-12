@@ -50,6 +50,15 @@
     <string name="auth_error_google_could_not_verify">Google sign-in could not be verified. Please try again.</string>
     <string name="auth_error_profile_load_failed">Your profile could not be loaded. Please sign in again.</string>
     <string name="auth_error_session_restore_failed">Your saved session could not be restored. Please sign in again.</string>
+    <string name="admin_login_title">Admin login requests</string>
+    <string name="admin_login_warning">Only approve if the code matches the admin website.</string>
+    <string name="admin_login_empty">No admin login requests.</string>
+    <string name="admin_login_error">Admin login requests could not be loaded. Please try again.</string>
+    <string name="admin_login_refresh">Refresh</string>
+    <string name="admin_login_approve">Approve</string>
+    <string name="admin_login_reject">Reject</string>
+    <string name="admin_login_requested">Requested</string>
+    <string name="admin_login_expires">Expires</string>
     <string name="vendor_onboarding_orders_title">Accept seller orders faster</string>
     <string name="vendor_onboarding_orders_subtitle">Review paid merchant sub-orders, accept or reject them, and keep each SLA visible.</string>
     <string name="vendor_onboarding_prep_title">Keep pickup moving</string>

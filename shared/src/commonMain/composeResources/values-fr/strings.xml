@@ -50,6 +50,15 @@
     <string name="auth_error_google_could_not_verify">La connexion Google n'a pas pu etre verifiee. Reessayez.</string>
     <string name="auth_error_profile_load_failed">Votre profil n'a pas pu etre charge. Reconnectez-vous.</string>
     <string name="auth_error_session_restore_failed">Votre session enregistree n'a pas pu etre restauree. Reconnectez-vous.</string>
+    <string name="admin_login_title">Demandes de connexion admin</string>
+    <string name="admin_login_warning">Approuvez seulement si le code correspond au site admin.</string>
+    <string name="admin_login_empty">Aucune demande de connexion admin.</string>
+    <string name="admin_login_error">Les demandes de connexion admin n'ont pas pu etre chargees. Reessayez.</string>
+    <string name="admin_login_refresh">Actualiser</string>
+    <string name="admin_login_approve">Approuver</string>
+    <string name="admin_login_reject">Refuser</string>
+    <string name="admin_login_requested">Demandee</string>
+    <string name="admin_login_expires">Expire</string>
     <string name="vendor_onboarding_orders_title">Acceptez les commandes plus vite</string>
     <string name="vendor_onboarding_orders_subtitle">Verifiez les sous-commandes marchandes payees, acceptez ou refusez, et gardez les SLA visibles.</string>
     <string name="vendor_onboarding_prep_title">Preparez les retraits</string>
