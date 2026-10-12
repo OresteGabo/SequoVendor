@@ -3,7 +3,7 @@ import SwiftUI
 import Shared
 import GoogleSignIn
 
-private let googleIosClientId = "543119759762-i32k35p3aku6ap9busskcvabqg1hvjj6.apps.googleusercontent.com"
+private let googleIosClientId = "92804430098-i4cgn00aec11rsfqgds56scv257s5gkt.apps.googleusercontent.com"
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Self.Context) -> UIViewController {
