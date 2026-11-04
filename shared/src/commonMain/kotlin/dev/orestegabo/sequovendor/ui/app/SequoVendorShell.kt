@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.SupportAgent
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,6 +34,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -50,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.core.auth.AuthApiClient
 import dev.orestegabo.sequovendor.core.auth.AuthApiException
 import dev.orestegabo.sequovendor.core.auth.AuthRepository
+import dev.orestegabo.sequovendor.core.auth.authorizedMerchantIds
 import dev.orestegabo.sequovendor.core.auth.AuthUserMessage
 import dev.orestegabo.sequovendor.core.auth.CurrentUser
 import dev.orestegabo.sequovendor.core.auth.GoogleSignInFailureReason
@@ -69,6 +73,7 @@ import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentApiClient
 import dev.orestegabo.sequovendor.core.fulfillment.MerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.fulfillment.NetworkMerchantFulfillmentRepository
 import dev.orestegabo.sequovendor.core.fulfillment.VendorOrderAction
+import dev.orestegabo.sequovendor.core.network.ApiFailure
 import dev.orestegabo.sequovendor.core.network.ApiResult
 import dev.orestegabo.sequovendor.core.network.ApiHealthClient
 import dev.orestegabo.sequovendor.core.network.ApiHealthStatus
@@ -86,6 +91,7 @@ import dev.orestegabo.sequovendor.feature.settings.AppLanguage
 import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
 import dev.orestegabo.sequovendor.feature.settings.appText
 import dev.orestegabo.sequovendor.model.CatalogProduct
+import dev.orestegabo.sequovendor.model.CatalogFoodOptionGroup
 import dev.orestegabo.sequovendor.model.DemoVendorData
 import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
@@ -132,6 +138,7 @@ import sequovendor.shared.generated.resources.auth_error_social_unavailable
 import sequovendor.shared.generated.resources.auth_error_too_many_attempts
 import sequovendor.shared.generated.resources.auth_error_unavailable
 import sequovendor.shared.generated.resources.auth_merchant_required
+import sequovendor.shared.generated.resources.auth_choose_merchant
 import sequovendor.shared.generated.resources.auth_not_ready
 import sequovendor.shared.generated.resources.cd_notifications
 import sequovendor.shared.generated.resources.cd_open_menu
@@ -192,6 +199,7 @@ internal fun SequoVendorShell(
 
     var session by remember { mutableStateOf<VendorSession?>(null) }
     var rememberedUser by remember { mutableStateOf<CurrentUser?>(null) }
+    var merchantChoice by remember { mutableStateOf<CurrentUser?>(null) }
     var authNotice by remember { mutableStateOf<String?>(null) }
     var emailAuthInProgress by remember { mutableStateOf(false) }
     var googleSignInInProgress by remember { mutableStateOf(false) }
@@ -202,13 +210,14 @@ internal fun SequoVendorShell(
     val localProducts = remember { DemoVendorData.products() }
     val localNotifications = remember { DemoVendorData.notifications() }
     val localNegotiations = remember { DemoVendorData.negotiations() }
-    var products by remember { mutableStateOf(localProducts) }
+    var products by remember(session?.merchantId, session?.localMode) { mutableStateOf(emptyList<CatalogProduct>()) }
     var notifications by remember { mutableStateOf(localNotifications) }
     var negotiations by remember { mutableStateOf(localNegotiations) }
     var notificationPreference by remember { mutableStateOf(VendorNotificationPreference()) }
     var store by remember { mutableStateOf(DemoVendorData.store()) }
     var closureNote by remember { mutableStateOf("") }
     suspend fun clearSavedSessionForDifferentAccount() {
+        merchantChoice = null
         if (rememberedUser != null || authRepository.getSavedSession() != null) {
             runCatching { authRepository.logout() }
             runCatching { onGoogleSignOut() }
@@ -217,25 +226,40 @@ internal fun SequoVendorShell(
         }
     }
 
+    suspend fun openMerchantWorkspace(user: CurrentUser, selection: String? = null) {
+        val authorizedIds = user.authorizedMerchantIds()
+        if (authorizedIds.isEmpty() || (selection != null && selection !in authorizedIds)) {
+            authRepository.logout()
+            rememberedUser = null
+            merchantChoice = null
+            authNotice = authError(AuthApiException(403, AuthUserMessage.MerchantRoleRequired))
+            return
+        }
+        val merchantId = selection ?: authorizedIds.singleOrNull()
+        if (merchantId == null) {
+            merchantChoice = user
+            return
+        }
+        val saved = authRepository.getSavedSession() ?: return
+        rememberedUser = user
+        authRepository.rememberUser(user)
+        merchantChoice = null
+        session = VendorSession(
+            merchantId = merchantId,
+            displayName = user.displayName,
+            accessToken = saved.accessToken,
+            authProvider = user.provider,
+            localMode = false,
+            userId = user.id,
+            email = user.email,
+            status = user.status,
+        )
+    }
+
     LaunchedEffect(authRepository) {
         rememberedUser = authRepository.getRememberedUser()
-        runCatching { authRepository.restoreSavedSession() }
-            .onSuccess { user ->
-                if (user != null) {
-                    rememberedUser = user
-                    val savedSession = authRepository.getSavedSession()
-                    session = VendorSession(
-                        merchantId = user.id,
-                        displayName = user.displayName,
-                        accessToken = savedSession?.accessToken,
-                        authProvider = user.provider,
-                        localMode = false,
-                        userId = user.id,
-                        email = user.email,
-                        status = user.status,
-                    )
-                }
-            }
+        runCatching { authRepository.restoreSavedSession()?.let { openMerchantWorkspace(it) } }
+            .onFailure { authNotice = authError(it) }
     }
 
     if (session == null) {
@@ -247,20 +271,10 @@ internal fun SequoVendorShell(
             rememberedUser = rememberedUser,
             onContinueRememberedUser = {
                 scope.launch {
-                    authRepository.getSavedSession()?.let { saved ->
-                        rememberedUser?.let { user ->
-                            session = VendorSession(
-                                merchantId = user.id,
-                                displayName = user.displayName,
-                                accessToken = saved.accessToken,
-                                authProvider = user.provider,
-                                localMode = false,
-                                userId = user.id,
-                                email = user.email,
-                                status = user.status,
-                            )
-                        }
-                    } ?: run { authNotice = notReadyMessage }
+                    runCatching {
+                        val user = authRepository.restoreSavedSession()
+                        if (user != null) openMerchantWorkspace(user) else authNotice = notReadyMessage
+                    }.onFailure { authNotice = authError(it) }
                 }
             },
             onEmailLogin = { email, password ->
@@ -271,22 +285,7 @@ internal fun SequoVendorShell(
                         authRepository.loginWithEmail(email, password)
                         authRepository.currentUser()
                     }.onSuccess { user ->
-                        if (user != null) {
-                            rememberedUser = user
-                            authRepository.rememberUser(user)
-                            session = VendorSession(
-                                merchantId = user.id,
-                                displayName = user.displayName,
-                                accessToken = authRepository.getSavedSession()?.accessToken,
-                                authProvider = user.provider,
-                                localMode = false,
-                                userId = user.id,
-                                email = user.email,
-                                status = user.status,
-                            )
-                        } else {
-                            authNotice = notReadyMessage
-                        }
+                        if (user != null) openMerchantWorkspace(user) else authNotice = notReadyMessage
                     }.onFailure { error ->
                         authNotice = authError(error)
                     }
@@ -301,22 +300,7 @@ internal fun SequoVendorShell(
                         authRepository.signUpWithEmail(email, password, name)
                         authRepository.currentUser()
                     }.onSuccess { user ->
-                        if (user != null) {
-                            rememberedUser = user
-                            authRepository.rememberUser(user)
-                            session = VendorSession(
-                                merchantId = user.id,
-                                displayName = user.displayName,
-                                accessToken = authRepository.getSavedSession()?.accessToken,
-                                authProvider = user.provider,
-                                localMode = false,
-                                userId = user.id,
-                                email = user.email,
-                                status = user.status,
-                            )
-                        } else {
-                            authNotice = notReadyMessage
-                        }
+                        if (user != null) openMerchantWorkspace(user) else authNotice = notReadyMessage
                     }.onFailure { error ->
                         authNotice = authError(error)
                     }
@@ -337,22 +321,7 @@ internal fun SequoVendorShell(
                                 authRepository.loginWithGoogle(result.idToken)
                                 authRepository.currentUser()
                             }.onSuccess { user ->
-                                if (user != null) {
-                                    rememberedUser = user
-                                    authRepository.rememberUser(user)
-                                    session = VendorSession(
-                                        merchantId = user.id,
-                                        displayName = user.displayName,
-                                        accessToken = authRepository.getSavedSession()?.accessToken,
-                                        authProvider = user.provider,
-                                        localMode = false,
-                                        userId = user.id,
-                                        email = user.email,
-                                        status = user.status,
-                                    )
-                                } else {
-                                    authNotice = notReadyMessage
-                                }
+                                if (user != null) openMerchantWorkspace(user) else authNotice = notReadyMessage
                             }.onFailure { error ->
                                 authNotice = authError(error)
                             }
@@ -404,6 +373,32 @@ internal fun SequoVendorShell(
             onPrivacyTermsClick = { authNotice = notReadyMessage },
             modifier = Modifier.fillMaxSize(),
         )
+        merchantChoice?.let { user ->
+            AlertDialog(
+                onDismissRequest = { merchantChoice = null },
+                title = { Text(appText(Res.string.auth_choose_merchant, language)) },
+                text = {
+                    Column(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                        user.authorizedMerchantIds().sorted().forEach { merchantId ->
+                            TextButton(onClick = {
+                                scope.launch {
+                                    runCatching {
+                                        val verified = authRepository.restoreSavedSession()
+                                        if (verified != null && verified.id == user.id) {
+                                            openMerchantWorkspace(verified, merchantId)
+                                        } else {
+                                            merchantChoice = null
+                                            authNotice = notReadyMessage
+                                        }
+                                    }.onFailure { authNotice = authError(it) }
+                                }
+                            }) { Text(merchantId) }
+                        }
+                    }
+                },
+                confirmButton = {},
+            )
+        }
         authNotice?.let { notice ->
             Box(Modifier.fillMaxSize().safeContentPadding().padding(18.dp), contentAlignment = Alignment.BottomCenter) {
                 VendorCard {
@@ -432,6 +427,7 @@ internal fun SequoVendorShell(
     var catalogLoading by remember { mutableStateOf(false) }
     var catalogOffline by remember { mutableStateOf(false) }
     var catalogSaveInProgress by remember { mutableStateOf(false) }
+    var catalogSaveError by remember(activeSession.merchantId) { mutableStateOf<ApiFailure?>(null) }
     var lastCatalogSaveState by remember { mutableStateOf<CatalogDraftState?>(null) }
     var notificationsLoading by remember { mutableStateOf(false) }
     var notificationsOffline by remember { mutableStateOf(false) }
@@ -452,7 +448,7 @@ internal fun SequoVendorShell(
     val storeRepository: VendorStoreRepository = remember { LocalVendorStoreRepository(store) }
     val negotiationRepository: VendorNegotiationRepository = remember { FakeVendorNegotiationRepository(localNegotiations) }
     val catalogRepository: VendorCatalogRepository = remember(activeSession.accessToken, activeSession.localMode) {
-        if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
+        if (activeSession.localMode) {
             FakeVendorCatalogRepository(localProducts)
         } else {
             NetworkVendorCatalogRepository(
@@ -583,11 +579,10 @@ internal fun SequoVendorShell(
         if (showLoading) catalogLoading = true
         when (val result = catalogRepository.listProducts(activeSession.merchantId)) {
             is ApiResult.Success -> {
-                products = result.value.ifEmpty { localProducts }
+                products = result.value
                 catalogOffline = false
             }
             is ApiResult.Failure -> {
-                products = localProducts
                 catalogOffline = true
             }
         }
@@ -697,17 +692,53 @@ internal fun SequoVendorShell(
         scope.launch {
             catalogSaveInProgress = true
             lastCatalogSaveState = null
+            catalogSaveError = null
             when (val result = catalogRepository.saveProduct(activeSession.merchantId, product)) {
                 is ApiResult.Success -> {
-                    products = products.filterNot { it.id == result.value.product.id } + result.value.product
-                    catalogOffline = result.value.state == CatalogDraftState.LOCAL_DRAFT && !activeSession.localMode
+                    products = products.filterNot { it.id == product.id || it.id == result.value.product.id } + result.value.product
                     lastCatalogSaveState = result.value.state
                 }
-                is ApiResult.Failure -> {
-                    catalogOffline = true
-                }
+                is ApiResult.Failure -> catalogSaveError = result.error
             }
             catalogSaveInProgress = false
+        }
+    }
+
+    fun saveProductOptions(product: CatalogProduct, groups: List<CatalogFoodOptionGroup>) {
+        val repository = catalogRepository as? NetworkVendorCatalogRepository ?: return
+        if (catalogSaveInProgress) return
+        scope.launch {
+            catalogSaveInProgress = true
+            catalogSaveError = null
+            try {
+                when (val result = repository.saveOptions(activeSession.merchantId, product.id, groups)) {
+                    is ApiResult.Success -> products = products.map {
+                        if (it.id == product.id) it.copy(foodOptionGroups = result.value) else it
+                    }
+                    is ApiResult.Failure -> catalogSaveError = result.error
+                }
+            } finally {
+                catalogSaveInProgress = false
+            }
+        }
+    }
+
+    fun attachProductPhoto(product: CatalogProduct, jpeg: ByteArray?) {
+        val repository = catalogRepository as? NetworkVendorCatalogRepository ?: return
+        if (catalogSaveInProgress) return
+        scope.launch {
+            catalogSaveInProgress = true
+            catalogSaveError = null
+            try {
+                when (val result = repository.attachPhoto(activeSession.merchantId, product, jpeg, deviceId)) {
+                    is ApiResult.Success -> products = products.map {
+                        if (it.id == result.value.id) result.value else it
+                    }
+                    is ApiResult.Failure -> catalogSaveError = result.error
+                }
+            } finally {
+                catalogSaveInProgress = false
+            }
         }
     }
 
@@ -893,8 +924,15 @@ internal fun SequoVendorShell(
                             isOffline = catalogOffline,
                             onRefresh = { scope.launch { refreshCatalog(showLoading = true) } },
                             onSaveProduct = ::saveProduct,
+                            onSaveOptions = if (activeSession.localMode) null else ::saveProductOptions,
+                            onAttachPhoto = if (activeSession.localMode) null else ::attachProductPhoto,
                             saveInProgress = catalogSaveInProgress,
                             lastSaveState = lastCatalogSaveState,
+                            saveError = catalogSaveError,
+                            onClearSaveResult = {
+                                catalogSaveError = null
+                                lastCatalogSaveState = null
+                            },
                             modifier = Modifier.fillMaxSize(),
                         )
                         VendorSection.Store -> StoreContent(

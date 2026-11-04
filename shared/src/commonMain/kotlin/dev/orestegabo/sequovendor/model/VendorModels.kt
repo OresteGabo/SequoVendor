@@ -208,6 +208,8 @@ data class CatalogProduct(
     val returnEligible: Boolean = false,
     val syncState: CatalogProductSyncState = CatalogProductSyncState.SERVER_SYNCED,
     val foodOptionGroups: List<CatalogFoodOptionGroup> = emptyList(),
+    val photoRequired: Boolean = false,
+    val imageUrl: String? = null,
 )
 
 @Serializable
@@ -217,6 +219,8 @@ data class CatalogFoodOptionGroup(
     val required: Boolean = false,
     val maxSelections: Int = 1,
     val options: List<CatalogFoodOption> = emptyList(),
+    val minSelections: Int = if (required) 1 else 0,
+    val active: Boolean = true,
 )
 
 @Serializable

@@ -1,6 +1,8 @@
 package dev.orestegabo.sequovendor.core.catalog
 
 import dev.orestegabo.sequovendor.model.CatalogProduct
+import dev.orestegabo.sequovendor.model.CatalogFoodOption
+import dev.orestegabo.sequovendor.model.CatalogFoodOptionGroup
 import dev.orestegabo.sequovendor.model.CatalogProductKind
 import dev.orestegabo.sequovendor.model.CatalogProductStatus
 import dev.orestegabo.sequovendor.model.CatalogProductSyncState
@@ -24,6 +26,9 @@ data class CatalogProductDto(
     val bargainFloorCfa: Int? = null,
     val cameraVerified: Boolean = false,
     val capturedAtLabel: String? = null,
+    val photoRequired: Boolean = false,
+    val imageUrl: String? = null,
+    val customizations: List<CatalogOptionGroupDto> = emptyList(),
 )
 
 @Serializable
@@ -43,6 +48,7 @@ data class ManageCatalogProductRequest(
     val cameraVerified: Boolean = false,
     val capturedAtLabel: String? = null,
     val sortOrder: Int = 0,
+    val idempotencyKey: String? = null,
 )
 
 @Serializable
@@ -86,7 +92,9 @@ fun CatalogProductDto.toDomain(): CatalogProduct =
         preparationTimeMinutes = null,
         returnEligible = false,
         syncState = CatalogProductSyncState.SERVER_SYNCED,
-        foodOptionGroups = emptyList(),
+        foodOptionGroups = customizations.map { it.toDomain() },
+        photoRequired = photoRequired,
+        imageUrl = imageUrl,
     )
 
 private fun String.toCatalogProductStatus(): CatalogProductStatus =
@@ -129,15 +137,16 @@ fun CatalogProduct.toManageCatalogProductRequest(merchantId: String): ManageCata
         bargainFloorCfa = bargainFloorCfa,
         cameraVerified = cameraVerified,
         capturedAtLabel = capturedAtLabel,
+        idempotencyKey = id.takeIf { it.isNotBlank() },
     )
 
 fun CatalogProduct.toPatchCatalogProductRequest(): PatchCatalogProductRequest =
     PatchCatalogProductRequest(
         name = name,
         status = status.toApiValue(),
-        category = category,
-        subcategory = subcategory,
-        detail = detail,
+        category = category.orEmpty(),
+        subcategory = subcategory.orEmpty(),
+        detail = detail.orEmpty(),
         basePriceCfa = priceCfa,
         optionHint = optionHint,
         originalPriceCfa = originalPriceCfa,
@@ -162,3 +171,50 @@ private fun CatalogProductStatus.toApiValue(): String =
         -> "INACTIVE"
         CatalogProductStatus.ARCHIVED -> "ARCHIVED"
     }
+
+@Serializable
+data class CatalogOptionDto(
+    val id: String? = null,
+    val name: String,
+    val priceDeltaCfa: Int = 0,
+    val sortOrder: Int = 0,
+    val active: Boolean = true,
+)
+
+@Serializable
+data class CatalogOptionGroupDto(
+    val id: String? = null,
+    val name: String,
+    val minChoices: Int = 0,
+    val maxChoices: Int = 1,
+    val sortOrder: Int = 0,
+    val active: Boolean = true,
+    val options: List<CatalogOptionDto>,
+)
+
+@Serializable
+internal data class SaveCatalogOptionsRequest(val groups: List<CatalogOptionGroupDto>)
+
+internal fun CatalogOptionGroupDto.toDomain() = CatalogFoodOptionGroup(
+    id = id.orEmpty(),
+    name = name,
+    required = minChoices > 0,
+    maxSelections = maxChoices,
+    minSelections = minChoices,
+    active = active,
+    options = options.map { CatalogFoodOption(it.id.orEmpty(), it.name, it.priceDeltaCfa, it.active) },
+)
+
+internal fun List<CatalogFoodOptionGroup>.toOptionsRequest() = SaveCatalogOptionsRequest(mapIndexed { index, group ->
+    CatalogOptionGroupDto(
+        id = group.id.ifBlank { null },
+        name = group.name,
+        minChoices = group.minSelections,
+        maxChoices = group.maxSelections,
+        sortOrder = index,
+        active = group.active,
+        options = group.options.mapIndexed { sort, option ->
+            CatalogOptionDto(option.id.ifBlank { null }, option.label, option.priceDeltaCfa, sort, option.available)
+        },
+    )
+})

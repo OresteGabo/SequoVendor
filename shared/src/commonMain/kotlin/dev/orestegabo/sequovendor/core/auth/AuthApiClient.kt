@@ -216,6 +216,7 @@ data class CurrentUser(
     val status: String,
     val active: Boolean = true,
     val roles: Set<String> = emptySet(),
+    val merchantScopeIds: Set<String> = emptySet(),
 ) {
     val displayName: String
         get() = backendDisplayName?.takeIf { it.isNotBlank() }
@@ -224,15 +225,12 @@ data class CurrentUser(
             ?: "Sequo merchant"
 }
 
-fun CurrentUser.hasMerchantAccess(): Boolean =
-    active && roles.any { it.uppercase() in MerchantRoles }
+fun CurrentUser.authorizedMerchantIds(): Set<String> =
+    if (active && roles.any { it == "MERCHANT_OWNER" || it == "MERCHANT_STAFF" }) {
+        merchantScopeIds.filter(String::isNotBlank).toSet()
+    } else emptySet()
 
-private val MerchantRoles = setOf(
-    "MERCHANT_OWNER",
-    "MERCHANT_STAFF",
-    "ADMIN",
-    "SUPER_ADMIN",
-)
+fun CurrentUser.hasMerchantAccess(): Boolean = authorizedMerchantIds().isNotEmpty()
 
 class AuthApiException(
     val statusCode: Int,

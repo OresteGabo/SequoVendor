@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor
 
+import dev.orestegabo.sequovendor.core.auth.CurrentUser
+import dev.orestegabo.sequovendor.core.auth.authorizedMerchantIds
 import dev.orestegabo.sequovendor.core.fulfillment.MarkPackedRequestDto
 import dev.orestegabo.sequovendor.core.fulfillment.MerchantActionRequestDto
 import dev.orestegabo.sequovendor.core.fulfillment.RejectMerchantSubOrderRequestDto
@@ -33,6 +35,18 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 
 class VendorLogicAndroidHostTest {
+
+    @Test
+    fun vendorWorkspaceUsesOnlyActiveServerMemberships() {
+        val user = defaultNetworkJson.decodeFromString<CurrentUser>(
+            """{"id":"account-id","provider":"GOOGLE","status":"ACTIVE","roles":["MERCHANT_STAFF"],"merchantScopeIds":["store-b","store-a"]}"""
+        )
+        assertEquals(setOf("store-a", "store-b"), user.authorizedMerchantIds())
+        assertTrue(user.copy(active = false).authorizedMerchantIds().isEmpty())
+        assertTrue(user.copy(merchantScopeIds = emptySet()).authorizedMerchantIds().isEmpty())
+        assertTrue(user.copy(roles = setOf("ADMIN")).authorizedMerchantIds().isEmpty())
+    }
+
 
     @Test
     fun statusMapsToExpectedPrimaryAction() {
