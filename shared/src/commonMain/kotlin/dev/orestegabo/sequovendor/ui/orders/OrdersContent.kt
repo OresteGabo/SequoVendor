@@ -61,6 +61,7 @@ import sequovendor.shared.generated.resources.order_mark_packed
 import sequovendor.shared.generated.resources.order_net
 import sequovendor.shared.generated.resources.order_package_count_label
 import sequovendor.shared.generated.resources.order_package_count_required
+import sequovendor.shared.generated.resources.order_lines_unavailable
 import sequovendor.shared.generated.resources.order_packages
 import sequovendor.shared.generated.resources.order_packing_due
 import sequovendor.shared.generated.resources.order_reject
@@ -128,7 +129,7 @@ internal fun OrdersContent(
             sla = detailSla,
             isLoading = detailLoading,
             isOffline = detailOffline,
-            actionInProgress = actionInProgressOrderId == order.id,
+            actionInProgress = actionInProgressOrderId == order.id || isOffline || isLoading,
             actionFailed = actionFailed,
             onBack = onCloseDetail,
             onRefresh = { onOpenDetail(order) },
@@ -202,7 +203,7 @@ internal fun OrdersContent(
         items(visibleOrders, key = { it.id }) { order ->
             OrderCard(
                 order = order,
-                actionInProgress = actionInProgressOrderId == order.id,
+                actionInProgress = actionInProgressOrderId == order.id || isOffline || isLoading,
                 onOpenDetail = onOpenDetail,
                 onOrderAction = onOrderAction,
             )
@@ -396,6 +397,13 @@ private fun OrderDetailContent(
                     }
                     KeyValueRow(appText(Res.string.order_id), order.orderId ?: "-")
                     KeyValueRow(appText(Res.string.order_packages), order.packageCount.toString())
+                    if (order.lines.isEmpty()) {
+                        Text(appText(Res.string.order_lines_unavailable), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    order.lines.forEach { line ->
+                        Text("${line.quantity} × ${line.productName}", style = MaterialTheme.typography.bodyLarge)
+                        line.optionLabel?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    }
                     if (order.status == MerchantSubOrderStatus.REJECTED && !order.rejectionReason.isNullOrBlank()) {
                         KeyValueRow(appText(Res.string.order_rejection_reason), order.rejectionReason)
                     }
@@ -443,7 +451,7 @@ private fun OrderDetailContent(
                     Text(appText(Res.string.dashboard_quick_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     OrderDetailActions(
                         order = order,
-                        actionInProgress = actionInProgress,
+                        actionInProgress = actionInProgress || isOffline || isLoading,
                         packageCountText = packageCountText,
                         onPackageCountChange = { packageCountText = it.filter(Char::isDigit).take(3) },
                         rejectBoxOpen = rejectBoxOpen,

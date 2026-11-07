@@ -393,4 +393,5 @@
     <string name="catalog_options_add_choice">Add choice</string>
     <string name="catalog_options_add_group">Add option group</string>
     <string name="catalog_options_save">Save options</string>
+    <string name="order_lines_unavailable">Item details are unavailable for this order.</string>
 </resources>

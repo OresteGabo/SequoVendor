@@ -20,6 +20,7 @@ fun appText(resource: StringResource, language: AppLanguage): String {
 }
 
 private val EnglishStrings = mapOf(
+    Res.string.order_lines_unavailable.key to "Item details are unavailable for this order.",
     Res.string.catalog_options_remove.key to "Remove choice",
     Res.string.catalog_options_remove_group.key to "Remove group",
     Res.string.catalog_options_add_choice.key to "Add choice",
@@ -399,6 +400,7 @@ private val EnglishStrings = mapOf(
 )
 
 private val FrenchStrings = mapOf(
+    Res.string.order_lines_unavailable.key to "Le détail des articles est indisponible pour cette commande.",
     Res.string.catalog_options_remove.key to "Retirer le choix",
     Res.string.catalog_options_remove_group.key to "Retirer le groupe",
     Res.string.catalog_options_add_choice.key to "Ajouter un choix",

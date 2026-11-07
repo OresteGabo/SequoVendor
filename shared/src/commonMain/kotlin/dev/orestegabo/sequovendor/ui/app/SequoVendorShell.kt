@@ -415,8 +415,12 @@ internal fun SequoVendorShell(
     }
 
     val activeSession = requireNotNull(session)
-    var dashboardOrders by remember { mutableStateOf<List<MerchantSubOrder>>(localOrders) }
-    var dashboardConnectionState by remember { mutableStateOf(DashboardConnectionState.LocalFallback) }
+    var dashboardOrders by remember(activeSession.merchantId, activeSession.localMode) {
+        mutableStateOf(if (activeSession.localMode) localOrders else emptyList<MerchantSubOrder>())
+    }
+    var dashboardConnectionState by remember(activeSession.merchantId, activeSession.localMode) {
+        mutableStateOf(if (activeSession.localMode) DashboardConnectionState.LocalFallback else DashboardConnectionState.Connected)
+    }
     var ordersLoading by remember { mutableStateOf(false) }
     var orderActionInProgressId by remember { mutableStateOf<String?>(null) }
     var orderActionFailed by remember { mutableStateOf(false) }
@@ -471,7 +475,7 @@ internal fun SequoVendorShell(
         }
     }
     val fulfillmentRepository: MerchantFulfillmentRepository = remember(activeSession.accessToken, activeSession.localMode) {
-        if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
+        if (activeSession.localMode) {
             FakeMerchantFulfillmentRepository(localOrders)
         } else {
             NetworkMerchantFulfillmentRepository(
@@ -568,7 +572,6 @@ internal fun SequoVendorShell(
                 }
             }
             is ApiResult.Failure -> {
-                dashboardOrders = localOrders
                 dashboardConnectionState = DashboardConnectionState.ErrorFallback
             }
         }
@@ -760,6 +763,11 @@ internal fun SequoVendorShell(
         when (val orderResult = fulfillmentRepository.getSubOrder(subOrderId, activeSession.merchantId)) {
             is ApiResult.Success -> {
                 detailOrder = orderResult.value
+                dashboardConnectionState = if (activeSession.localMode) {
+                    DashboardConnectionState.LocalFallback
+                } else {
+                    DashboardConnectionState.Connected
+                }
                 replaceMerchantOrder(orderResult.value)
                 when (val slaResult = fulfillmentRepository.getSla(subOrderId, activeSession.merchantId)) {
                     is ApiResult.Success -> detailSla = slaResult.value
@@ -780,43 +788,52 @@ internal fun SequoVendorShell(
         reason: String?,
     ) {
         if (orderActionInProgressId != null) return
+        if (!activeSession.localMode &&
+            (dashboardConnectionState == DashboardConnectionState.ErrorFallback || detailOffline)
+        ) {
+            orderActionFailed = true
+            return
+        }
         orderActionInProgressId = order.id
         scope.launch {
-            orderActionFailed = false
-            val result = when (action) {
-                VendorOrderAction.Accept -> fulfillmentRepository.accept(order.id, activeSession.merchantId)
-                VendorOrderAction.StartPreparation -> fulfillmentRepository.startPreparation(order.id, activeSession.merchantId)
-                VendorOrderAction.MarkPacked -> fulfillmentRepository.markPacked(
-                    subOrderId = order.id,
-                    merchantId = activeSession.merchantId,
-                    packageCount = reason?.toIntOrNull()?.coerceAtLeast(1) ?: order.packageCount.coerceAtLeast(1),
-                )
-                VendorOrderAction.Handoff -> fulfillmentRepository.handoff(order.id, activeSession.merchantId)
-                VendorOrderAction.Reject -> fulfillmentRepository.reject(
-                    subOrderId = order.id,
-                    merchantId = activeSession.merchantId,
-                    reason = reason.orEmpty(),
-                )
-            }
-            when (result) {
-                is ApiResult.Success -> {
-                    replaceMerchantOrder(result.value)
-                    if (detailOrder?.id == result.value.id) {
-                        detailOrder = result.value
-                        loadOrderDetail(result.value.id, fallback = result.value, showLoading = false)
+            try {
+                orderActionFailed = false
+                val result = when (action) {
+                    VendorOrderAction.Accept -> fulfillmentRepository.accept(order.id, activeSession.merchantId)
+                    VendorOrderAction.StartPreparation -> fulfillmentRepository.startPreparation(order.id, activeSession.merchantId)
+                    VendorOrderAction.MarkPacked -> fulfillmentRepository.markPacked(
+                        subOrderId = order.id,
+                        merchantId = activeSession.merchantId,
+                        packageCount = reason?.toIntOrNull()?.coerceAtLeast(1) ?: order.packageCount.coerceAtLeast(1),
+                    )
+                    VendorOrderAction.Handoff -> fulfillmentRepository.handoff(order.id, activeSession.merchantId)
+                    VendorOrderAction.Reject -> fulfillmentRepository.reject(
+                        subOrderId = order.id,
+                        merchantId = activeSession.merchantId,
+                        reason = reason.orEmpty(),
+                    )
+                }
+                when (result) {
+                    is ApiResult.Success -> {
+                        replaceMerchantOrder(result.value)
+                        if (detailOrder?.id == result.value.id) {
+                            detailOrder = result.value
+                            loadOrderDetail(result.value.id, fallback = result.value, showLoading = false)
+                        }
+                        dashboardConnectionState = if (activeSession.localMode) {
+                            DashboardConnectionState.LocalFallback
+                        } else {
+                            DashboardConnectionState.Connected
+                        }
                     }
-                    dashboardConnectionState = if (activeSession.localMode) {
-                        DashboardConnectionState.LocalFallback
-                    } else {
-                        DashboardConnectionState.Connected
+                    is ApiResult.Failure -> {
+                        orderActionFailed = true
+                        dashboardConnectionState = DashboardConnectionState.ErrorFallback
                     }
                 }
-                is ApiResult.Failure -> {
-                    orderActionFailed = true
-                    dashboardConnectionState = DashboardConnectionState.ErrorFallback
-                }
+            } finally {
+                orderActionInProgressId = null
             }
-            orderActionInProgressId = null
         }
     }
 
@@ -914,7 +931,12 @@ internal fun SequoVendorShell(
                                 detailSla = null
                                 detailOffline = false
                             },
-                            onRefresh = { scope.launch { refreshMerchantOrders(showLoading = true) } },
+                            onRefresh = {
+                                scope.launch {
+                                    refreshMerchantOrders(showLoading = true)
+                                    detailOrder?.let { loadOrderDetail(it.id, fallback = it) }
+                                }
+                            },
                             onOrderAction = ::handleOrderAction,
                             modifier = Modifier.fillMaxSize(),
                         )

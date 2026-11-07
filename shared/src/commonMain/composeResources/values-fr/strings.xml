@@ -393,4 +393,5 @@
     <string name="catalog_options_add_choice">Ajouter un choix</string>
     <string name="catalog_options_add_group">Ajouter un groupe</string>
     <string name="catalog_options_save">Enregistrer les options</string>
+    <string name="order_lines_unavailable">Le détail des articles est indisponible pour cette commande.</string>
 </resources>

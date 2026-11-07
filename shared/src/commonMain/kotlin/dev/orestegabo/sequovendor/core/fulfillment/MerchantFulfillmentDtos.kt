@@ -1,5 +1,6 @@
 package dev.orestegabo.sequovendor.core.fulfillment
 
+import dev.orestegabo.sequovendor.model.VendorOrderLine
 import dev.orestegabo.sequovendor.model.MerchantSlaInfo
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
@@ -26,6 +27,7 @@ data class MerchantSubOrderDto(
     val packingDueAt: String? = null,
     val createdAt: String? = null,
     val updatedAt: String,
+    val lines: List<VendorOrderLine> = emptyList(),
 )
 
 @Serializable
@@ -76,6 +78,7 @@ fun MerchantSubOrderDto.toDomain(): MerchantSubOrder =
         packingDueAt = packingDueAt,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        lines = lines,
     )
 
 fun MerchantFulfillmentSlaDto.toDomain(): MerchantSlaInfo =
