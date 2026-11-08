@@ -79,6 +79,8 @@ import dev.orestegabo.sequovendor.core.network.ApiHealthClient
 import dev.orestegabo.sequovendor.core.network.ApiHealthStatus
 import dev.orestegabo.sequovendor.core.network.createSequoVendorHttpClient
 import dev.orestegabo.sequovendor.core.negotiation.FakeVendorNegotiationRepository
+import dev.orestegabo.sequovendor.core.negotiation.VendorNegotiationApiClient
+import dev.orestegabo.sequovendor.core.negotiation.NetworkVendorNegotiationRepository
 import dev.orestegabo.sequovendor.core.negotiation.VendorNegotiationRepository
 import dev.orestegabo.sequovendor.core.notifications.FakeVendorNotificationsRepository
 import dev.orestegabo.sequovendor.core.notifications.NetworkVendorNotificationsRepository
@@ -212,7 +214,7 @@ internal fun SequoVendorShell(
     val localNegotiations = remember { DemoVendorData.negotiations() }
     var products by remember(session?.merchantId, session?.localMode) { mutableStateOf(emptyList<CatalogProduct>()) }
     var notifications by remember { mutableStateOf(localNotifications) }
-    var negotiations by remember { mutableStateOf(localNegotiations) }
+    var negotiations by remember(session?.userId, session?.merchantId, session?.localMode) { mutableStateOf(emptyList<VendorNegotiationThread>()) }
     var notificationPreference by remember { mutableStateOf(VendorNotificationPreference()) }
     var store by remember { mutableStateOf(DemoVendorData.store()) }
     var closureNote by remember { mutableStateOf("") }
@@ -438,8 +440,10 @@ internal fun SequoVendorShell(
     var notificationActionFailed by remember { mutableStateOf(false) }
     var notificationPreferenceSaved by remember { mutableStateOf(false) }
     var includeArchivedNotifications by remember { mutableStateOf(false) }
-    var negotiationActionInProgressId by remember { mutableStateOf<String?>(null) }
-    var negotiationActionFailed by remember { mutableStateOf(false) }
+    var negotiationActionInProgressId by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf<String?>(null) }
+    var negotiationFailure by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf<ApiFailure?>(null) }
+    var negotiationsLoading by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf(false) }
+    var negotiationsStale by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf(true) }
     val salesToday = dashboardOrders.count { it.status != MerchantSubOrderStatus.REJECTED && it.status != MerchantSubOrderStatus.CANCELLED }
     val merchantNetPendingCfa = dashboardOrders
         .filter {
@@ -450,7 +454,22 @@ internal fun SequoVendorShell(
         }
         .sumOf { it.merchantNetCfa }
     val storeRepository: VendorStoreRepository = remember { LocalVendorStoreRepository(store) }
-    val negotiationRepository: VendorNegotiationRepository = remember { FakeVendorNegotiationRepository(localNegotiations) }
+    val negotiationRepository: VendorNegotiationRepository = remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
+        if (activeSession.localMode) FakeVendorNegotiationRepository(localNegotiations)
+        else NetworkVendorNegotiationRepository(
+            VendorNegotiationApiClient(httpClient = createSequoVendorHttpClient(
+                accessTokenProvider = { session?.accessToken },
+                refreshAccessToken = {
+                    val restoredUser = runCatching { authRepository.restoreSavedSession() }.getOrNull()
+                    val refreshedToken = authRepository.getSavedSession()?.accessToken
+                    if (restoredUser?.id == activeSession.userId && activeSession.merchantId in restoredUser.authorizedMerchantIds() && !refreshedToken.isNullOrBlank()) {
+                        session = session?.copy(accessToken = refreshedToken)
+                        true
+                    } else false
+                },
+            )), activeSession.merchantId,
+        )
+    }
     val catalogRepository: VendorCatalogRepository = remember(activeSession.accessToken, activeSession.localMode) {
         if (activeSession.localMode) {
             FakeVendorCatalogRepository(localProducts)
@@ -644,49 +663,45 @@ internal fun SequoVendorShell(
         }
     }
 
-    fun replaceNegotiation(updated: VendorNegotiationThread) {
-        negotiations = negotiations.map { if (it.id == updated.id) updated else it }
-    }
+    fun sameNegotiationSession(): Boolean = session?.userId == activeSession.userId &&
+        session?.merchantId == activeSession.merchantId && session?.localMode == activeSession.localMode
 
-    fun handleNegotiationAction(
-        thread: VendorNegotiationThread,
-        action: suspend (String) -> ApiResult<VendorNegotiationThread>,
-    ) {
-        if (negotiationActionInProgressId != null) return
-        scope.launch {
-            negotiationActionInProgressId = thread.id
-            negotiationActionFailed = false
-            when (val result = action(thread.id)) {
-                is ApiResult.Success -> replaceNegotiation(result.value)
-                is ApiResult.Failure -> negotiationActionFailed = true
+    suspend fun refreshNegotiations() {
+        if (negotiationsLoading || negotiationActionInProgressId != null) return
+        negotiationsLoading = true
+        negotiationFailure = null
+        when (val result = negotiationRepository.listThreads(activeSession.merchantId)) {
+            is ApiResult.Success -> if (sameNegotiationSession()) {
+                negotiations = result.value
+                negotiationsStale = false
             }
-            negotiationActionInProgressId = null
+            is ApiResult.Failure -> if (sameNegotiationSession()) {
+                negotiationFailure = result.error
+                negotiationsStale = true
+            }
         }
+        if (sameNegotiationSession()) negotiationsLoading = false
     }
 
-    fun rejectNegotiation(thread: VendorNegotiationThread, reason: String) {
-        if (negotiationActionInProgressId != null) return
+    fun handleNegotiationAction(thread: VendorNegotiationThread, action: suspend () -> ApiResult<VendorNegotiationThread>) {
+        if (negotiationActionInProgressId != null || negotiationsLoading || negotiationsStale) return
+        // Mark busy before launch so repeated taps cannot launch parallel mutations.
+        negotiationActionInProgressId = thread.id
+        negotiationFailure = null
         scope.launch {
-            negotiationActionInProgressId = thread.id
-            negotiationActionFailed = false
-            when (val result = negotiationRepository.reject(thread.id, reason)) {
-                is ApiResult.Success -> replaceNegotiation(result.value)
-                is ApiResult.Failure -> negotiationActionFailed = true
+            try {
+                when (val result = action()) {
+                    is ApiResult.Success -> if (sameNegotiationSession()) {
+                        negotiations = negotiations.map { if (it.id == result.value.id) result.value else it }
+                    }
+                    is ApiResult.Failure -> if (sameNegotiationSession()) {
+                        negotiationFailure = result.error
+                        negotiationsStale = true
+                    }
+                }
+            } finally {
+                if (sameNegotiationSession()) negotiationActionInProgressId = null
             }
-            negotiationActionInProgressId = null
-        }
-    }
-
-    fun counterNegotiation(thread: VendorNegotiationThread, amountCfa: Int) {
-        if (negotiationActionInProgressId != null) return
-        scope.launch {
-            negotiationActionInProgressId = thread.id
-            negotiationActionFailed = false
-            when (val result = negotiationRepository.counter(thread.id, amountCfa)) {
-                is ApiResult.Success -> replaceNegotiation(result.value)
-                is ApiResult.Failure -> negotiationActionFailed = true
-            }
-            negotiationActionInProgressId = null
         }
     }
 
@@ -849,6 +864,10 @@ internal fun SequoVendorShell(
         refreshNotifications(showLoading = true)
     }
 
+    LaunchedEffect(negotiationRepository, currentSection) {
+        if (currentSection == VendorSection.Account) refreshNegotiations()
+    }
+
     LaunchedEffect(Unit) {
         checkApiHealth()
     }
@@ -996,10 +1015,14 @@ internal fun SequoVendorShell(
                             onNotificationsClick = { currentSection = VendorSection.Notifications },
                             negotiations = negotiations,
                             negotiationActionInProgressId = negotiationActionInProgressId,
-                            negotiationActionFailed = negotiationActionFailed,
-                            onAcceptNegotiation = { thread -> handleNegotiationAction(thread, negotiationRepository::accept) },
-                            onRejectNegotiation = ::rejectNegotiation,
-                            onCounterNegotiation = ::counterNegotiation,
+                            negotiationFailure = negotiationFailure,
+                            negotiationsLoading = negotiationsLoading,
+                            negotiationsStale = negotiationsStale,
+                            onRefreshNegotiations = { scope.launch { refreshNegotiations() } },
+                            onAcceptNegotiation = { thread -> handleNegotiationAction(thread) { negotiationRepository.accept(thread.id) } },
+                            onRejectNegotiation = { thread, reason -> handleNegotiationAction(thread) { negotiationRepository.reject(thread.id, reason) } },
+                            onCounterNegotiation = { thread, amount -> handleNegotiationAction(thread) { negotiationRepository.counter(thread.id, amount) } },
+                            onMessageNegotiation = { thread, message -> handleNegotiationAction(thread) { negotiationRepository.message(thread.id, message) } },
                             salesToday = salesToday,
                             merchantNetPendingCfa = merchantNetPendingCfa,
                             onLogout = {

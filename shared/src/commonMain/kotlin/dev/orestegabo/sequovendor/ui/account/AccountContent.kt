@@ -64,6 +64,20 @@ import sequovendor.shared.generated.resources.account_manage_store
 import sequovendor.shared.generated.resources.account_merchant_context
 import sequovendor.shared.generated.resources.account_merchant_id
 import sequovendor.shared.generated.resources.account_notifications_entry
+import dev.orestegabo.sequovendor.core.network.ApiFailure
+import sequovendor.shared.generated.resources.account_negotiation_accepted_price
+import sequovendor.shared.generated.resources.account_negotiation_customer
+import sequovendor.shared.generated.resources.account_negotiation_merchant
+import sequovendor.shared.generated.resources.account_negotiation_refresh
+import sequovendor.shared.generated.resources.account_negotiation_loading
+import sequovendor.shared.generated.resources.account_negotiation_reply
+import sequovendor.shared.generated.resources.account_negotiation_send
+import sequovendor.shared.generated.resources.account_negotiation_history
+import sequovendor.shared.generated.resources.account_negotiation_live
+import sequovendor.shared.generated.resources.account_negotiation_status_open
+import sequovendor.shared.generated.resources.account_negotiation_status_locked
+import sequovendor.shared.generated.resources.account_negotiation_status_cancelled
+import sequovendor.shared.generated.resources.account_negotiation_status_unknown
 import sequovendor.shared.generated.resources.account_negotiation_accept
 import sequovendor.shared.generated.resources.account_negotiation_counter
 import sequovendor.shared.generated.resources.account_negotiation_counter_placeholder
@@ -128,10 +142,14 @@ internal fun AccountContent(
     onNotificationsClick: () -> Unit,
     negotiations: List<VendorNegotiationThread>,
     negotiationActionInProgressId: String?,
-    negotiationActionFailed: Boolean,
+    negotiationFailure: ApiFailure?,
+    negotiationsLoading: Boolean,
+    negotiationsStale: Boolean,
+    onRefreshNegotiations: () -> Unit,
     onAcceptNegotiation: (VendorNegotiationThread) -> Unit,
     onRejectNegotiation: (VendorNegotiationThread, String) -> Unit,
     onCounterNegotiation: (VendorNegotiationThread, Int) -> Unit,
+    onMessageNegotiation: (VendorNegotiationThread, String) -> Unit,
     salesToday: Int,
     merchantNetPendingCfa: Int,
     onLogout: () -> Unit,
@@ -279,7 +297,12 @@ internal fun AccountContent(
             NegotiationsCard(
                 negotiations = negotiations,
                 actionInProgressId = negotiationActionInProgressId,
-                actionFailed = negotiationActionFailed,
+                failure = negotiationFailure,
+                loading = negotiationsLoading,
+                stale = negotiationsStale,
+                localMode = session.localMode,
+                onRefresh = onRefreshNegotiations,
+                onMessage = onMessageNegotiation,
                 onAccept = onAcceptNegotiation,
                 onReject = onRejectNegotiation,
                 onCounter = onCounterNegotiation,
@@ -329,33 +352,43 @@ internal fun AccountContent(
 private fun NegotiationsCard(
     negotiations: List<VendorNegotiationThread>,
     actionInProgressId: String?,
-    actionFailed: Boolean,
+    failure: ApiFailure?,
+    loading: Boolean,
+    stale: Boolean,
+    localMode: Boolean,
+    onRefresh: () -> Unit,
+    onMessage: (VendorNegotiationThread, String) -> Unit,
     onAccept: (VendorNegotiationThread) -> Unit,
     onReject: (VendorNegotiationThread, String) -> Unit,
     onCounter: (VendorNegotiationThread, Int) -> Unit,
 ) {
     val rejectReasons = remember { mutableStateMapOf<String, String>() }
     val counterAmounts = remember { mutableStateMapOf<String, String>() }
+    val replyMessages = remember { mutableStateMapOf<String, String>() }
 
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(appText(Res.string.account_negotiations), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(appText(Res.string.account_negotiation_demo), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (actionFailed) {
+            Text(appText(if (localMode) Res.string.account_negotiation_demo else Res.string.account_negotiation_live), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedButton(onClick = onRefresh, enabled = !loading && actionInProgressId == null) { Text(appText(Res.string.account_negotiation_refresh)) }
+            if (loading) Text(appText(Res.string.account_negotiation_loading))
+            if (failure != null) {
+                Text(appText(failure.userMessage), color = MaterialTheme.colorScheme.error)
                 Text(appText(Res.string.account_negotiation_error), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
-            if (negotiations.isEmpty()) {
+            if (!loading && failure == null && negotiations.isEmpty()) {
                 Text(appText(Res.string.account_negotiation_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             negotiations.forEach { thread ->
                 var expanded by remember(thread.id) { mutableStateOf(false) }
-                val busy = actionInProgressId == thread.id
+                val busy = loading || stale || actionInProgressId != null
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     KeyValueRow(appText(Res.string.account_negotiation_product), thread.productName)
                     KeyValueRow(appText(Res.string.account_negotiation_customer_offer), thread.customerOfferCfa.formatCfa())
                     KeyValueRow(appText(Res.string.account_negotiation_seller_counter), thread.sellerCounterCfa.formatCfaOrDash())
-                    KeyValueRow(appText(Res.string.account_negotiation_attempts), "${thread.merchantAttemptsRemaining}/3")
+                    KeyValueRow(appText(Res.string.account_negotiation_attempts), "${thread.merchantAttemptsRemaining}/${thread.maxMerchantAttempts}")
+                    thread.acceptedPriceCfa?.let { KeyValueRow(appText(Res.string.account_negotiation_accepted_price), it.formatCfa()) }
                     thread.lockExpiresAt?.let {
                         KeyValueRow(appText(Res.string.account_negotiation_lock_expiry), it.formatIsoTimestampOrDash())
                     }
@@ -364,6 +397,34 @@ private fun NegotiationsCard(
                         Text(appText(Res.string.account_negotiations))
                     }
                     if (expanded) {
+                        Text(appText(Res.string.account_negotiation_history), fontWeight = FontWeight.Bold)
+                        thread.messages.forEach { entry ->
+                            val actor = when (entry.actorType) {
+                                "CUSTOMER" -> appText(Res.string.account_negotiation_customer)
+                                "MERCHANT" -> appText(Res.string.account_negotiation_merchant)
+                                else -> "SEQUO"
+                            }
+                            val action = appText(when (entry.offerType) {
+                                "OFFER" -> Res.string.account_negotiation_customer_offer
+                                "COUNTER_OFFER" -> Res.string.account_negotiation_seller_counter
+                                "ACCEPT" -> Res.string.account_negotiation_status_accepted
+                                "REJECT" -> Res.string.account_negotiation_status_rejected
+                                else -> Res.string.account_negotiation_reply
+                            })
+                            Text("$actor · $action · ${entry.createdAt.formatIsoTimestampOrDash()}", style = MaterialTheme.typography.bodySmall)
+                            entry.amountCfa?.let { Text(it.formatCfa()) }
+                            entry.message?.let { Text(it) }
+                        }
+                        OutlinedTextField(
+                            value = replyMessages[thread.id].orEmpty(),
+                            onValueChange = { replyMessages[thread.id] = it.take(500) },
+                            label = { Text(appText(Res.string.account_negotiation_reply)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedButton(
+                            onClick = { onMessage(thread, replyMessages[thread.id].orEmpty()) },
+                            enabled = !busy && thread.status in setOf(VendorNegotiationStatus.CUSTOMER_OFFERED, VendorNegotiationStatus.MERCHANT_COUNTERED, VendorNegotiationStatus.OPEN, VendorNegotiationStatus.REJECTED) && replyMessages[thread.id].orEmpty().isNotBlank(),
+                        ) { Text(appText(Res.string.account_negotiation_send)) }
                         OutlinedTextField(
                             value = counterAmounts[thread.id].orEmpty(),
                             onValueChange = { counterAmounts[thread.id] = it.filter(Char::isDigit).take(9) },
@@ -381,14 +442,14 @@ private fun NegotiationsCard(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = { onAccept(thread) },
-                                enabled = !busy && thread.status.allowsMerchantAction,
+                                enabled = !busy && (thread.merchantActionAllowed && thread.status.allowsMerchantAction),
                                 modifier = Modifier.weight(1f),
                             ) {
                                 Text(appText(Res.string.account_negotiation_accept))
                             }
                             OutlinedButton(
                                 onClick = { counterAmounts[thread.id]?.toIntOrNull()?.let { onCounter(thread, it) } },
-                                enabled = !busy && thread.status.allowsMerchantAction && counterAmounts[thread.id]?.toIntOrNull() != null,
+                                enabled = !busy && (thread.merchantActionAllowed && thread.status.allowsMerchantAction) && (counterAmounts[thread.id]?.toIntOrNull() ?: 0) > 0 && thread.merchantAttemptsRemaining > 0,
                                 modifier = Modifier.weight(1f),
                             ) {
                                 Text(appText(Res.string.account_negotiation_counter))
@@ -396,7 +457,7 @@ private fun NegotiationsCard(
                         }
                         OutlinedButton(
                             onClick = { onReject(thread, rejectReasons[thread.id].orEmpty()) },
-                            enabled = !busy && thread.status.allowsMerchantAction && rejectReasons[thread.id].orEmpty().isNotBlank(),
+                            enabled = !busy && (thread.merchantActionAllowed && thread.status.allowsMerchantAction) && rejectReasons[thread.id].orEmpty().isNotBlank(),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(appText(Res.string.account_negotiation_reject))
@@ -421,11 +482,14 @@ private fun VendorNegotiationStatus.label(): String =
         VendorNegotiationStatus.ACCEPTED -> appText(Res.string.account_negotiation_status_accepted)
         VendorNegotiationStatus.REJECTED -> appText(Res.string.account_negotiation_status_rejected)
         VendorNegotiationStatus.EXPIRED -> appText(Res.string.account_negotiation_status_expired)
+        VendorNegotiationStatus.OPEN -> appText(Res.string.account_negotiation_status_open)
+        VendorNegotiationStatus.LOCKED -> appText(Res.string.account_negotiation_status_locked)
+        VendorNegotiationStatus.CANCELLED -> appText(Res.string.account_negotiation_status_cancelled)
+        VendorNegotiationStatus.UNKNOWN -> appText(Res.string.account_negotiation_status_unknown)
     }
 
 private val VendorNegotiationStatus.allowsMerchantAction: Boolean
-    get() = this == VendorNegotiationStatus.CUSTOMER_OFFERED ||
-        this == VendorNegotiationStatus.MERCHANT_COUNTERED
+    get() = this == VendorNegotiationStatus.CUSTOMER_OFFERED
 
 private fun sanitizeReason(input: String): String =
     input.filter { it.isLetterOrDigit() || it.isWhitespace() || it in "-_.'/,&()" }.take(120)

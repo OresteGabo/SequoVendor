@@ -274,6 +274,11 @@ data class VendorNegotiationThread(
     val status: VendorNegotiationStatus = VendorNegotiationStatus.CUSTOMER_OFFERED,
     val rejectionReason: String? = null,
     val localDemo: Boolean = true,
+    val pendingCustomerOfferId: String? = null,
+    val merchantActionAllowed: Boolean = status == VendorNegotiationStatus.CUSTOMER_OFFERED,
+    val messages: List<VendorNegotiationMessage> = emptyList(),
+    val acceptedPriceCfa: Int? = null,
+    val maxMerchantAttempts: Int = 3,
 )
 
 @Serializable
@@ -283,7 +288,21 @@ enum class VendorNegotiationStatus {
     ACCEPTED,
     REJECTED,
     EXPIRED,
+    OPEN,
+    LOCKED,
+    CANCELLED,
+    UNKNOWN,
 }
+
+@Serializable
+data class VendorNegotiationMessage(
+    val id: String,
+    val actorType: String,
+    val offerType: String,
+    val amountCfa: Int? = null,
+    val message: String? = null,
+    val createdAt: String,
+)
 
 @Serializable
 data class StoreAvailabilityState(

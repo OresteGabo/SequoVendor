@@ -334,9 +334,9 @@
     <string name="account_notifications_entry">Preferences notifications</string>
     <string name="account_sales_payments">Visibilite ventes et paiements</string>
     <string name="account_negotiations">Negociations</string>
-    <string name="account_negotiation_demo">Boite demo locale jusqu'aux endpoints negociation vendeur.</string>
+    <string name="account_negotiation_demo">Boîte de démonstration locale. Les modifications ne sont pas envoyées à SEQUO.</string>
     <string name="account_negotiation_empty">Aucune negociation.</string>
-    <string name="account_negotiation_error">Action impossible a enregistrer localement.</string>
+    <string name="account_negotiation_error">Enregistrement non confirmé. Actualisez pour lire l’état du serveur avant de réessayer.</string>
     <string name="account_negotiation_product">Produit</string>
     <string name="account_negotiation_customer_offer">Offre client</string>
     <string name="account_negotiation_seller_counter">Contre-offre vendeur</string>
@@ -394,4 +394,17 @@
     <string name="catalog_options_add_group">Ajouter un groupe</string>
     <string name="catalog_options_save">Enregistrer les options</string>
     <string name="order_lines_unavailable">Le détail des articles est indisponible pour cette commande.</string>
+    <string name="account_negotiation_refresh">Actualiser les négociations</string>
+    <string name="account_negotiation_loading">Chargement des négociations…</string>
+    <string name="account_negotiation_reply">Message</string>
+    <string name="account_negotiation_send">Envoyer le message</string>
+    <string name="account_negotiation_history">Historique des offres et messages</string>
+    <string name="account_negotiation_live">Boîte du marchand depuis le serveur. Actualisez avant de répondre à une ancienne offre.</string>
+    <string name="account_negotiation_status_open">En attente d’une offre</string>
+    <string name="account_negotiation_status_locked">Limite de tentatives atteinte</string>
+    <string name="account_negotiation_status_cancelled">Annulée</string>
+    <string name="account_negotiation_status_unknown">Statut indisponible — actualisez</string>
+    <string name="account_negotiation_accepted_price">Prix accepté</string>
+    <string name="account_negotiation_customer">Client</string>
+    <string name="account_negotiation_merchant">Marchand</string>
 </resources>

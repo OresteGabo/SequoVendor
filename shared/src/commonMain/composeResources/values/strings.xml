@@ -334,9 +334,9 @@
     <string name="account_notifications_entry">Notification preferences</string>
     <string name="account_sales_payments">Sales and payment visibility</string>
     <string name="account_negotiations">Negotiations</string>
-    <string name="account_negotiation_demo">Local demo inbox until seller bargaining endpoints are available.</string>
+    <string name="account_negotiation_demo">Local demo inbox. Changes are not sent to SEQUO.</string>
     <string name="account_negotiation_empty">No negotiation threads.</string>
-    <string name="account_negotiation_error">Action could not be saved locally.</string>
+    <string name="account_negotiation_error">Save could not be confirmed. Refresh to read the server state before retrying.</string>
     <string name="account_negotiation_product">Product</string>
     <string name="account_negotiation_customer_offer">Customer offer</string>
     <string name="account_negotiation_seller_counter">Seller counter</string>
@@ -394,4 +394,17 @@
     <string name="catalog_options_add_group">Add option group</string>
     <string name="catalog_options_save">Save options</string>
     <string name="order_lines_unavailable">Item details are unavailable for this order.</string>
+    <string name="account_negotiation_refresh">Refresh negotiations</string>
+    <string name="account_negotiation_loading">Loading negotiations…</string>
+    <string name="account_negotiation_reply">Message</string>
+    <string name="account_negotiation_send">Send message</string>
+    <string name="account_negotiation_history">Offer and message history</string>
+    <string name="account_negotiation_live">Merchant inbox from the server. Refresh before acting on an old offer.</string>
+    <string name="account_negotiation_status_open">Waiting for an offer</string>
+    <string name="account_negotiation_status_locked">Attempt limit reached</string>
+    <string name="account_negotiation_status_cancelled">Cancelled</string>
+    <string name="account_negotiation_status_unknown">Status unavailable — refresh</string>
+    <string name="account_negotiation_accepted_price">Accepted price</string>
+    <string name="account_negotiation_customer">Customer</string>
+    <string name="account_negotiation_merchant">Merchant</string>
 </resources>

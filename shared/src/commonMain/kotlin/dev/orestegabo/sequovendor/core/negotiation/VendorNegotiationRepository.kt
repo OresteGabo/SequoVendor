@@ -11,6 +11,7 @@ interface VendorNegotiationRepository {
     suspend fun accept(threadId: String): ApiResult<VendorNegotiationThread>
     suspend fun reject(threadId: String, reason: String): ApiResult<VendorNegotiationThread>
     suspend fun counter(threadId: String, amountCfa: Int): ApiResult<VendorNegotiationThread>
+    suspend fun message(threadId: String, message: String): ApiResult<VendorNegotiationThread>
 }
 
 class FakeVendorNegotiationRepository(
@@ -45,6 +46,9 @@ class FakeVendorNegotiationRepository(
                 merchantAttemptsRemaining = (it.merchantAttemptsRemaining - 1).coerceAtLeast(0),
             )
         }
+
+    override suspend fun message(threadId: String, message: String): ApiResult<VendorNegotiationThread> =
+        update(threadId) { it }
 
     private fun update(
         threadId: String,
