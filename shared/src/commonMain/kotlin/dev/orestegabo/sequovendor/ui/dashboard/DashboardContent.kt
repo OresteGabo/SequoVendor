@@ -30,7 +30,8 @@ import dev.orestegabo.sequovendor.core.network.ApiFailure
 import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
-import dev.orestegabo.sequovendor.ui.store.storeAvailabilityLabel
+import dev.orestegabo.sequovendor.ui.store.StoreStatusSummary
+import dev.orestegabo.sequovendor.ui.components.VendorTitleStatusRow
 import dev.orestegabo.sequovendor.model.StoreAvailabilityState
 import dev.orestegabo.sequovendor.model.VendorSession
 import dev.orestegabo.sequovendor.model.formatCfa
@@ -141,14 +142,7 @@ internal fun DashboardContent(
         item {
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(appText(Res.string.dashboard_store_status), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    KeyValueRow(
-                        label = storeAvailabilityLabel(store),
-                        value = store.openStatus ?: if (store.open) "OPEN" else "PAUSED",
-                    )
+                    StoreStatusSummary(store, appText(Res.string.dashboard_store_status))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = { onStoreOpenChange(!store.open) },
@@ -254,13 +248,10 @@ private fun DashboardOrderRow(order: MerchantSubOrder) {
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(order.subOrderCode, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text(order.status.label(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            }
+            VendorTitleStatusRow(order.subOrderCode, order.status.label())
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("${appText(Res.string.order_net)}: ${order.merchantNetCfa.formatCfa()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${appText(Res.string.order_packages)}: ${order.packageCount}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${appText(Res.string.order_net)}: ${order.merchantNetCfa.formatCfa()}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${appText(Res.string.order_packages)}: ${order.packageCount}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             order.updatedAt?.let {
                 Text("${appText(Res.string.dashboard_last_updated)}: ${it.formatIsoTimestampOrDash()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

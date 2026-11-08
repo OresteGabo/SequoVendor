@@ -85,6 +85,7 @@ internal fun StoreContent(
 ) {
     var weeklyHours by remember(status.merchantId, status.updatedAt) { mutableStateOf(status.openingHours.sortedBy { it.dayOfWeek }) }
     val customerPreview = when {
+        status.openStatus == "MERCHANT_INACTIVE" -> appText(Res.string.store_state_inactive)
         status.openStatus == "UNAVAILABLE" -> appText(Res.string.store_status_unavailable)
         !status.configured -> appText(Res.string.store_not_configured)
         status.canAcceptOrders ?: status.open -> appText(Res.string.store_preview_open)
@@ -106,22 +107,7 @@ internal fun StoreContent(
         item {
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(appText(Res.string.store_operational_state), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(
-                                storeAvailabilityLabel(status),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                        Text(
-                            status.openStatus ?: if (status.open) "OPEN" else "PAUSED",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    StoreStatusSummary(status, appText(Res.string.store_operational_state))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
@@ -221,7 +207,7 @@ private fun OpeningHoursRow(
     val open = !day.closed
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(day.label(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     if (open) appText(Res.string.store_open_toggle) else appText(Res.string.store_closed_toggle),

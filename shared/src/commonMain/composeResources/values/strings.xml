@@ -65,9 +65,9 @@
     <string name="vendor_onboarding_prep_title">Keep pickup moving</string>
     <string name="vendor_onboarding_prep_subtitle">Track preparation and package handoff so riders know when an order is ready.</string>
     <string name="vendor_onboarding_catalog_title">Check catalog readiness</string>
-    <string name="vendor_onboarding_catalog_subtitle">Read product status and photo requirements without inventing missing write endpoints.</string>
+    <string name="vendor_onboarding_catalog_subtitle">Publish products with prices, descriptions and the required photos.</string>
     <string name="vendor_onboarding_hours_title">Control store availability</string>
-    <string name="vendor_onboarding_hours_subtitle">Manage open status locally until mobile-ready store hours endpoints are added.</string>
+    <string name="vendor_onboarding_hours_subtitle">Keep opening hours and temporary closures up to date.</string>
     <string name="onboarding_save_time_title">Run your store faster</string>
     <string name="onboarding_save_time_subtitle">Review Sequo Vendor orders, compare readiness, and keep seller work moving without jumping between tools.</string>
     <string name="onboarding_riders_title">Riders keep it moving</string>
@@ -279,7 +279,7 @@
     <string name="catalog_editor_saved_server">Saved and synced with the server.</string>
     <string name="catalog_editor_saved_local">Saved as a local draft.</string>
     <string name="store_title">Store status</string>
-    <string name="store_detail">Hours are local until merchant store settings endpoints are available.</string>
+    <string name="store_detail">Opening hours and manual availability for your store.</string>
     <string name="store_open">Open for orders</string>
     <string name="store_closed">Orders paused</string>
     <string name="store_weekday">Weekday</string>
@@ -487,4 +487,14 @@
     <string name="auth_local_test_accounts">Local test merchant accounts</string>
     <string name="auth_local_test_detail">Connect to the isolated SEQUO practice server with a real, revocable test session. No provider payment is enabled.</string>
     <string name="auth_local_test_cancel">Cancel</string>
+    <string name="store_state_setup">Setup needed</string>
+    <string name="store_state_unavailable">Unavailable</string>
+    <string name="store_state_open">Open</string>
+    <string name="store_state_paused">Paused</string>
+    <string name="store_state_orders_paused">Orders paused</string>
+    <string name="store_state_temporary">Temporary closure</string>
+    <string name="store_state_exception">Special closure</string>
+    <string name="store_state_outside">Outside hours</string>
+    <string name="store_state_inactive">Merchant inactive</string>
+    <string name="account_status_active">Active</string>
 </resources>

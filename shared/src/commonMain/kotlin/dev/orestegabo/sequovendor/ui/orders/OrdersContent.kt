@@ -30,6 +30,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
@@ -43,6 +44,7 @@ import dev.orestegabo.sequovendor.model.VendorOrderHandoffMethod
 import dev.orestegabo.sequovendor.model.formatCfa
 import dev.orestegabo.sequovendor.model.formatIsoTimestampOrDash
 import dev.orestegabo.sequovendor.ui.components.KeyValueRow
+import dev.orestegabo.sequovendor.ui.components.VendorTitleStatusRow
 import dev.orestegabo.sequovendor.ui.dashboard.ActivityField
 import dev.orestegabo.sequovendor.ui.dashboard.customerPaymentState
 import dev.orestegabo.sequovendor.ui.dashboard.merchantOrderState
@@ -251,10 +253,7 @@ private fun OrderCard(
 
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(order.subOrderCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(order.status.label(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            }
+            VendorTitleStatusRow(order.subOrderCode, order.status.label())
             KeyValueRow(appText(Res.string.order_item_subtotal), order.itemSubtotalCfa.formatCfa())
             KeyValueRow(appText(Res.string.order_net), order.merchantNetCfa.formatCfa())
             if (order.commissionCfa > 0) {
@@ -375,7 +374,7 @@ private fun OrderDetailContent(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(appText(Res.string.order_detail_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(order.subOrderCode, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Text(order.subOrderCode, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 OutlinedButton(onClick = onBack, enabled = !actionInProgress) {
                     Text(appText(Res.string.order_detail_back))
@@ -407,10 +406,30 @@ private fun OrderDetailContent(
         item {
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(order.subOrderCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(order.status.label(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    }
+                    Text(appText(Res.string.dashboard_quick_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    OrderDetailActions(
+                        order = order,
+                        actionInProgress = actionInProgress || isOffline || isLoading,
+                        packageCountText = packageCountText,
+                        onPackageCountChange = { packageCountText = it.filter(Char::isDigit).take(3) },
+                        rejectBoxOpen = rejectBoxOpen,
+                        rejectionReason = rejectionReason,
+                        onRejectOpen = { rejectBoxOpen = true },
+                        onRejectReasonChange = { rejectionReason = sanitizeRejectionReason(it) },
+                        onHideKeyboard = {
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                        },
+                        focusRequester = focusRequester,
+                        onOrderAction = onOrderAction,
+                    )
+                }
+            }
+        }
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VendorTitleStatusRow(order.subOrderCode, order.status.label())
                     KeyValueRow(appText(Res.string.order_id), order.orderId ?: "-")
                     ActivityField(appText(Res.string.finance_order_state), merchantOrderState(order.orderStatus))
                     ActivityField(appText(Res.string.finance_customer_payment), customerPaymentState(order.orderPaymentStatus))
@@ -465,29 +484,7 @@ private fun OrderDetailContent(
                 }
             }
         }
-        item {
-            VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(appText(Res.string.dashboard_quick_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    OrderDetailActions(
-                        order = order,
-                        actionInProgress = actionInProgress || isOffline || isLoading,
-                        packageCountText = packageCountText,
-                        onPackageCountChange = { packageCountText = it.filter(Char::isDigit).take(3) },
-                        rejectBoxOpen = rejectBoxOpen,
-                        rejectionReason = rejectionReason,
-                        onRejectOpen = { rejectBoxOpen = true },
-                        onRejectReasonChange = { rejectionReason = sanitizeRejectionReason(it) },
-                        onHideKeyboard = {
-                            keyboardController?.hide()
-                            focusManager.clearFocus()
-                        },
-                        focusRequester = focusRequester,
-                        onOrderAction = onOrderAction,
-                    )
-                }
-            }
-        }
+
     }
 }
 

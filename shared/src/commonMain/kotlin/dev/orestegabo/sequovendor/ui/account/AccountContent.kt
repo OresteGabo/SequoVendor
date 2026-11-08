@@ -115,6 +115,7 @@ import sequovendor.shared.generated.resources.account_profile
 import sequovendor.shared.generated.resources.account_provider
 import sequovendor.shared.generated.resources.account_sales_payments
 import sequovendor.shared.generated.resources.account_status
+import sequovendor.shared.generated.resources.account_status_active
 import sequovendor.shared.generated.resources.account_theme
 import sequovendor.shared.generated.resources.account_title
 import sequovendor.shared.generated.resources.admin_login_title
@@ -168,15 +169,6 @@ internal fun AccountContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(appText(Res.string.account_build), style = MaterialTheme.typography.titleMedium)
-                    KeyValueRow(appText(Res.string.account_release), NetworkConfig.ReleaseId)
-                    KeyValueRow(NetworkConfig.Environment, NetworkConfig.BaseUrl)
-                }
-            }
-        }
-        item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(appText(Res.string.account_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(appText(Res.string.account_detail), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -198,7 +190,7 @@ internal fun AccountContent(
                             Text("${appText(Res.string.account_email)}: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         session.status?.takeIf { it.isNotBlank() }?.let {
-                            Text("${appText(Res.string.account_status)}: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(appText(Res.string.account_status) + ": " + appText(if (it == "ACTIVE") Res.string.account_status_active else Res.string.account_negotiation_status_unknown), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(
                             if (session.localMode) {
@@ -228,22 +220,6 @@ internal fun AccountContent(
                     }
                     OutlinedButton(onClick = onFinancialRecordsClick) {
                         Text(appText(Res.string.finance_open_dashboard))
-                    }
-                }
-            }
-        }
-
-        item {
-            VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(appText(Res.string.account_merchant_context), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    KeyValueRow(appText(Res.string.account_merchant_id), session.merchantId)
-                    KeyValueRow(appText(Res.string.account_api_health), apiHealthStatus.healthLabel())
-                    OutlinedButton(onClick = onCheckApiHealth, modifier = Modifier.fillMaxWidth()) {
-                        Text(appText(Res.string.account_api_check))
                     }
                 }
             }
@@ -313,9 +289,9 @@ internal fun AccountContent(
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Column {
+                            Column(Modifier.weight(1f)) {
                                 Text(appText(Res.string.account_availability), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Text(
                                     storeAvailabilityLabel(availability),
@@ -345,6 +321,25 @@ internal fun AccountContent(
                 LegalScreen(Modifier.fillMaxWidth())
             }
         }
+        if (NetworkConfig.Environment == "LOCAL_FIXTURE") {
+            item {
+                Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Text(appText(Res.string.account_build) + " · " + NetworkConfig.Environment,
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(NetworkConfig.ReleaseId, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(NetworkConfig.BaseUrl, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(appText(Res.string.account_merchant_id) + ": " + session.merchantId,
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(appText(Res.string.account_api_health) + ": " + apiHealthStatus.healthLabel(),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(onClick = onCheckApiHealth) { Text(appText(Res.string.account_api_check)) }
+                }
+            }
+        }
+
     }
 }
 

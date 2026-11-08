@@ -65,9 +65,9 @@
     <string name="vendor_onboarding_prep_title">Preparez les retraits</string>
     <string name="vendor_onboarding_prep_subtitle">Suivez la preparation et le colis pour que les livreurs sachent quand la commande est prete.</string>
     <string name="vendor_onboarding_catalog_title">Controlez le catalogue</string>
-    <string name="vendor_onboarding_catalog_subtitle">Lisez les statuts produits et besoins photo sans inventer les endpoints d'ecriture manquants.</string>
+    <string name="vendor_onboarding_catalog_subtitle">Publiez les produits avec leur prix, leur description et les photos requises.</string>
     <string name="vendor_onboarding_hours_title">Pilotez la disponibilite</string>
-    <string name="vendor_onboarding_hours_subtitle">Gerez l'ouverture localement jusqu'a l'ajout des endpoints horaires mobiles.</string>
+    <string name="vendor_onboarding_hours_subtitle">Gardez les horaires et les fermetures temporaires à jour.</string>
     <string name="onboarding_save_time_title">Gerez plus vite</string>
     <string name="onboarding_save_time_subtitle">Suivez les commandes Sequo Vendor et gardez le travail vendeur au meme endroit.</string>
     <string name="onboarding_riders_title">Les livreurs avancent</string>
@@ -279,7 +279,7 @@
     <string name="catalog_editor_saved_server">Enregistre et synchronise avec le serveur.</string>
     <string name="catalog_editor_saved_local">Enregistré comme brouillon local.</string>
     <string name="store_title">Statut boutique</string>
-    <string name="store_detail">Les horaires sont locaux jusqu'aux endpoints reglages boutique marchand.</string>
+    <string name="store_detail">Horaires et disponibilité manuelle de votre boutique.</string>
     <string name="store_open">Ouverte aux commandes</string>
     <string name="store_closed">Commandes suspendues</string>
     <string name="store_weekday">Semaine</string>
@@ -487,4 +487,14 @@
     <string name="auth_local_test_accounts">Comptes commerçants de test local</string>
     <string name="auth_local_test_detail">Connexion au serveur de recette isolé SEQUO avec une vraie session de test révocable. Aucun paiement fournisseur n’est activé.</string>
     <string name="auth_local_test_cancel">Annuler</string>
+    <string name="store_state_setup">À configurer</string>
+    <string name="store_state_unavailable">Indisponible</string>
+    <string name="store_state_open">Ouverte</string>
+    <string name="store_state_paused">En pause</string>
+    <string name="store_state_orders_paused">Commandes suspendues</string>
+    <string name="store_state_temporary">Fermeture temporaire</string>
+    <string name="store_state_exception">Fermeture spéciale</string>
+    <string name="store_state_outside">Hors horaires</string>
+    <string name="store_state_inactive">Marchand inactif</string>
+    <string name="account_status_active">Actif</string>
 </resources>

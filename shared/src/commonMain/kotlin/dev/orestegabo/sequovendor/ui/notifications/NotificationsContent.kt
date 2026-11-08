@@ -107,9 +107,9 @@ internal fun NotificationsContent(
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Switch(checked = includeArchived, onCheckedChange = onIncludeArchivedChange)
-                            Text(appText(Res.string.notifications_show_archived))
+                            Text(appText(Res.string.notifications_show_archived), modifier = Modifier.weight(1f))
                         }
                         Button(onClick = onRefresh, enabled = !isLoading) {
                             Text(appText(Res.string.notifications_refresh))
@@ -224,7 +224,7 @@ private fun NotificationPreferenceCard(
 @Composable
 private fun PreferenceSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
@@ -248,8 +248,8 @@ private fun NotificationCard(
                     Text(notification.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(notification.body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(notification.createdAt.formatIsoTimestampOrDash(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Text(notification.createdAt.formatIsoTimestampOrDash(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { onMarkRead(notification) }, enabled = notification.unread, modifier = Modifier.weight(1f)) {
                     Text(appText(Res.string.notifications_mark_read))
