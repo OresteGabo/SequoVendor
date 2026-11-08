@@ -127,6 +127,7 @@ import dev.orestegabo.sequovendor.ui.notifications.NotificationsContent
 import dev.orestegabo.sequovendor.ui.orders.OrdersContent
 import dev.orestegabo.sequovendor.ui.store.StoreContent
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import sequovendor.shared.generated.resources.Res
 import sequovendor.shared.generated.resources.store_sync_loading
 import sequovendor.shared.generated.resources.store_sync_failed
@@ -283,9 +284,11 @@ internal fun SequoVendorShell(
     }
 
     LaunchedEffect(authRepository) {
-        rememberedUser = authRepository.getRememberedUser()
-        runCatching { authRepository.restoreSavedSession()?.let { openMerchantWorkspace(it) } }
-            .onFailure { authNotice = authError(it) }
+        try {
+            rememberedUser = authRepository.getRememberedUser()
+            authRepository.restoreSavedSession()?.let { openMerchantWorkspace(it) }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: Exception) { authNotice = authError(failure) }
     }
 
     if (session == null) {
@@ -397,7 +400,7 @@ internal fun SequoVendorShell(
                 }
             },
             onPrivacyTermsClick = { authNotice = notReadyMessage },
-            onLocalTestAccountsClick = if (localTestAccounts.isEmpty()) null else ({ showLocalTestAccounts = true }),
+            onLocalTestAccountsClick = if (localTestAccounts.isEmpty()) null else ({ authNotice = null; showLocalTestAccounts = true }),
             localTestBusy = localTestBusy,
             modifier = Modifier.fillMaxSize(),
         )
@@ -406,17 +409,20 @@ internal fun SequoVendorShell(
             title = { Text(appText(Res.string.auth_local_test_accounts)) },
             text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(appText(Res.string.auth_local_test_detail))
+                authNotice?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
                 localTestAccounts.forEach { account ->
                     TextButton(enabled = !localTestBusy && !emailAuthInProgress && !googleSignInInProgress, onClick = {
                         if (!localTestBusy) {
                             localTestBusy = true
+                            authNotice = null
                             scope.launch {
                                 try {
                                     clearSavedSessionForDifferentAccount()
                                     val verified = authRepository.loginWithDevelopmentAccount(account.key)
                                     showLocalTestAccounts = false
                                     openMerchantWorkspace(verified)
-                                } catch (failure: Exception) { authNotice = authError(failure) }
+                                } catch (cancelled: CancellationException) { throw cancelled }
+                                catch (failure: Exception) { authNotice = authError(failure) }
                                 finally { localTestBusy = false }
                             }
                         }
