@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.ui.navigation.VendorBackHandler
 import dev.orestegabo.sequovendor.core.catalog.CatalogDraftState
 import dev.orestegabo.sequovendor.core.network.ApiFailure
 import dev.orestegabo.sequovendor.model.CatalogProduct
@@ -119,6 +120,12 @@ internal fun CatalogContent(
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<CatalogStatusFilter?>(null) }
     var editingProduct by remember { mutableStateOf<CatalogProduct?>(null) }
+    VendorBackHandler(enabled = editingProduct != null) {
+        if (!saveInProgress) {
+            editingProduct = null
+            onClearSaveResult()
+        }
+    }
     LaunchedEffect(lastSaveState) {
         if (lastSaveState != null) editingProduct = null
     }

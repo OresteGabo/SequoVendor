@@ -111,6 +111,7 @@ import dev.orestegabo.sequovendor.model.VendorNegotiationThread
 import dev.orestegabo.sequovendor.model.VendorSection
 import dev.orestegabo.sequovendor.model.VendorSession
 import dev.orestegabo.sequovendor.ui.account.AccountContent
+import dev.orestegabo.sequovendor.ui.navigation.VendorBackHandler
 import dev.orestegabo.sequovendor.ui.catalog.CatalogContent
 import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorChip
@@ -935,6 +936,17 @@ internal fun SequoVendorShell(
         checkApiHealth()
     }
 
+    // Registered before child editors/dialogs so their close actions take precedence.
+    VendorBackHandler(enabled = detailOrder != null || currentSection != VendorSection.Dashboard) {
+        if (detailOrder != null) {
+            detailOrder = null
+            detailSla = null
+            detailOffline = false
+        } else {
+            currentSection = VendorSection.Dashboard
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -1105,6 +1117,11 @@ internal fun SequoVendorShell(
             }
         }
     }
+    // The open drawer closes before a child editor or the selected tab.
+    VendorBackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

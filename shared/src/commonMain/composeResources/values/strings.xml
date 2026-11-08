@@ -225,7 +225,7 @@
     <string name="order_mark_packed">Mark ready</string>
     <string name="order_handoff">Confirm handoff</string>
     <string name="catalog_title">Catalog read</string>
-    <string name="catalog_detail">Seller products sync to the server when available, with local draft fallback.</string>
+    <string name="catalog_detail">Changes appear in the live catalog after the server confirms the save.</string>
     <string name="catalog_camera_verified">Camera verified</string>
     <string name="catalog_needs_photo">Needs live photo</string>
     <string name="catalog_search">Search products</string>

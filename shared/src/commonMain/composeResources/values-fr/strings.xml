@@ -225,7 +225,7 @@
     <string name="order_mark_packed">Marquer prete</string>
     <string name="order_handoff">Confirmer la remise</string>
     <string name="catalog_title">Lecture catalogue</string>
-    <string name="catalog_detail">Les produits vendeur se synchronisent avec le serveur si disponible, avec brouillon local en secours.</string>
+    <string name="catalog_detail">Les modifications apparaissent dans le catalogue en ligne après confirmation du serveur.</string>
     <string name="catalog_camera_verified">Photo verifiee</string>
     <string name="catalog_needs_photo">Photo live requise</string>
     <string name="catalog_search">Rechercher des produits</string>
