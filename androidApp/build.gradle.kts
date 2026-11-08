@@ -37,7 +37,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-        manifestPlaceholders["sequoAppLabel"] = if (sequoAcceptance) "SequoVendor [$sequoEnvironment]" else "SequoVendor"
+        manifestPlaceholders["sequoAppLabel"] = if (sequoAcceptance) "SequoVendor [$sequoEnvironment]" else "@string/app_name"
         manifestPlaceholders["sequoCleartextAllowed"] = "false"
     }
     packaging {
