@@ -28,6 +28,10 @@ data class MerchantSubOrderDto(
     val createdAt: String? = null,
     val updatedAt: String,
     val lines: List<VendorOrderLine> = emptyList(),
+    val orderStatus: String? = null,
+    val orderPaymentStatus: String? = null,
+    val orderCreatedAt: String? = null,
+    val deliveredAt: String? = null,
 )
 
 @Serializable
@@ -79,6 +83,10 @@ fun MerchantSubOrderDto.toDomain(): MerchantSubOrder =
         createdAt = createdAt,
         updatedAt = updatedAt,
         lines = lines,
+        orderStatus = orderStatus,
+        orderPaymentStatus = orderPaymentStatus,
+        orderCreatedAt = orderCreatedAt,
+        deliveredAt = deliveredAt,
     )
 
 fun MerchantFulfillmentSlaDto.toDomain(): MerchantSlaInfo =

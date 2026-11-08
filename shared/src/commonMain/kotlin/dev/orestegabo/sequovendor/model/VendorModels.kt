@@ -127,6 +127,10 @@ data class MerchantSubOrder(
     val lines: List<VendorOrderLine> = emptyList(),
     val handoffMethod: VendorOrderHandoffMethod? = null,
     val handoffNote: String? = null,
+    val orderStatus: String? = null,
+    val orderPaymentStatus: String? = null,
+    val orderCreatedAt: String? = null,
+    val deliveredAt: String? = null,
 ) {
     val code: String
         get() = subOrderCode
