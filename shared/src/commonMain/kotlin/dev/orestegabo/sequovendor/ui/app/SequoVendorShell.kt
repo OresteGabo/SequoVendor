@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,8 +37,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -51,6 +51,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.orestegabo.sequo.design.SequoDesign
+import dev.orestegabo.sequo.design.SequoPageHeader
 import dev.orestegabo.sequovendor.core.auth.createVendorWorkspaceClient
 import dev.orestegabo.sequovendor.core.auth.completeVendorSignOut
 import dev.orestegabo.sequovendor.core.auth.LocalNativeAccount
@@ -473,11 +475,11 @@ internal fun SequoVendorShell(
             )
         }
         authNotice?.let { notice ->
-            Box(Modifier.fillMaxSize().safeContentPadding().padding(18.dp), contentAlignment = Alignment.BottomCenter) {
+            Box(Modifier.fillMaxSize().safeContentPadding().padding(SequoDesign.ScreenGutter), contentAlignment = Alignment.BottomCenter) {
                 VendorCard {
                     Text(
                         notice,
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(SequoDesign.CardPadding),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -982,22 +984,24 @@ internal fun SequoVendorShell(
                 )
             },
             bottomBar = {
-                VendorBottomBar(currentSection = currentSection, onSectionSelected = { currentSection = it })
+                VendorBottomBar(modifier = Modifier.navigationBarsPadding(), currentSection = currentSection, onSectionSelected = { currentSection = it })
             },
         ) { paddingValues ->
             Column(
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(vertical = SequoDesign.SectionGap),
+                verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap),
             ) {
                 if (currentSection in listOf(VendorSection.Dashboard, VendorSection.Store, VendorSection.Account)) {
-                    if (storeBusy) Text(appText(Res.string.store_sync_loading))
-                    storeFailure?.let { Text(appText(Res.string.store_sync_failed), color = MaterialTheme.colorScheme.error) }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(enabled = !storeBusy, onClick = { scope.launch { updateStore { storeRepository.getAvailability(activeSession.merchantId) } } }) { Text(appText(Res.string.store_refresh)) }
-                        if (storePendingRetry) TextButton(enabled = !storeBusy, onClick = { scope.launch { updateStore { storeRepository.retryPending(activeSession.merchantId) } } }) { Text(appText(Res.string.store_retry_save)) }
+                    Column(Modifier.fillMaxWidth().padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (storeBusy) Text(appText(Res.string.store_sync_loading))
+                        storeFailure?.let { Text(appText(Res.string.store_sync_failed), color = MaterialTheme.colorScheme.error) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(enabled = !storeBusy, onClick = { scope.launch { updateStore { storeRepository.getAvailability(activeSession.merchantId) } } }) { Text(appText(Res.string.store_refresh)) }
+                            if (storePendingRetry) TextButton(enabled = !storeBusy, onClick = { scope.launch { updateStore { storeRepository.retryPending(activeSession.merchantId) } } }) { Text(appText(Res.string.store_retry_save)) }
+                        }
                     }
                 }
                 Box(Modifier.fillMaxSize()) {
@@ -1142,13 +1146,10 @@ private fun VendorTopAppBar(
     onMenuClick: () -> Unit,
     onNotificationsClick: () -> Unit,
 ) {
-    TopAppBar(
-        title = {
-            Column {
-                Text(section.title(), fontWeight = FontWeight.Bold)
-                Text(section.subtitle(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        },
+    SequoPageHeader(
+        title = section.title(),
+        subtitle = section.subtitle(),
+        modifier = Modifier.statusBarsPadding(),
         navigationIcon = {
             IconButton(onClick = onMenuClick) {
                 Icon(Icons.Filled.Menu, contentDescription = appText(Res.string.cd_open_menu))
@@ -1159,7 +1160,6 @@ private fun VendorTopAppBar(
                 Icon(Icons.Filled.Notifications, contentDescription = appText(Res.string.cd_notifications))
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
     )
 }
 
@@ -1179,7 +1179,7 @@ private fun VendorDrawer(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(SequoDesign.ScreenGutter),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {

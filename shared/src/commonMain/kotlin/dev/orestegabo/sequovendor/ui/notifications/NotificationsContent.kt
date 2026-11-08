@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor.ui.notifications
 
+import dev.orestegabo.sequo.design.SequoDesign
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +16,11 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
+import dev.orestegabo.sequo.design.SequoActionButton as Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import dev.orestegabo.sequo.design.SequoOutlineButton as OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,8 +89,8 @@ internal fun NotificationsContent(
     val deliveryProblemsTitle = appText(Res.string.notifications_delivery_problems)
 
     LazyColumn(
-        modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier.padding(horizontal = SequoDesign.ScreenGutter),
+        verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -105,7 +107,7 @@ internal fun NotificationsContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Switch(checked = includeArchived, onCheckedChange = onIncludeArchivedChange)
@@ -173,7 +175,7 @@ private fun LazyListScope.notificationSection(
     if (notifications.isEmpty() && emptyAllowed) {
         item {
             VendorCard {
-                Text(appText(Res.string.notifications_empty), modifier = Modifier.padding(18.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(appText(Res.string.notifications_empty), modifier = Modifier.padding(SequoDesign.CardPadding), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -197,7 +199,7 @@ private fun NotificationPreferenceCard(
     var smsEnabled by remember(preference) { mutableStateOf(preference.smsEnabled) }
 
     VendorCard {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(appText(Res.string.notifications_preferences), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             PreferenceSwitch(appText(Res.string.notifications_push), pushEnabled) { pushEnabled = it }
             PreferenceSwitch(appText(Res.string.notifications_in_app), inAppEnabled) { inAppEnabled = it }
@@ -237,7 +239,7 @@ private fun NotificationCard(
     onUnarchive: (VendorNotification) -> Unit,
 ) {
     VendorCard {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

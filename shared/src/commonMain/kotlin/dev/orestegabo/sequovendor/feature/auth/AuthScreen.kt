@@ -1,5 +1,8 @@
 package dev.orestegabo.sequovendor.feature.auth
 
+import dev.orestegabo.sequo.design.SequoDesign
+import dev.orestegabo.sequo.design.SequoOutlineButton
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -175,8 +179,8 @@ private fun SocialAuthPage(
             .fillMaxSize()
             .safeContentPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(top = 22.dp, bottom = 22.dp),
+            .padding(horizontal = SequoDesign.ScreenGutter)
+            .padding(vertical = SequoDesign.SectionGap),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         BrandMark(
@@ -217,7 +221,7 @@ private fun SocialAuthPage(
 
                 GuestBrowseLink(onClick = onSkipAuth)
                 onLocalTestAccountsClick?.let { open ->
-                    OutlinedButton(onClick = open, enabled = !localTestBusy && !googleSignInInProgress, modifier = Modifier.fillMaxWidth()) {
+                    SequoOutlineButton(onClick = open, enabled = !localTestBusy && !googleSignInInProgress, modifier = Modifier.fillMaxWidth()) {
                         Text(appText(Res.string.auth_local_test_accounts))
                     }
                 }
@@ -292,7 +296,7 @@ private fun OnboardingCard(slide: OnboardingSlide) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(270.dp)
+            .heightIn(min = 270.dp)
             .padding(horizontal = 2.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -651,8 +655,8 @@ private fun EmailFallbackPage(
             .safeContentPadding()
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
-            .padding(top = 20.dp, bottom = 22.dp),
+            .padding(horizontal = SequoDesign.ScreenGutter)
+            .padding(vertical = SequoDesign.SectionGap),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         EmailHeader(
@@ -1038,7 +1042,7 @@ private fun RememberedAccountButton(
     Button(
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp),
+            .heightIn(min = SequoDesign.ControlHeight),
         enabled = enabled,
         onClick = onClick,
         shape = SequoShapes.Small,
@@ -1683,6 +1687,7 @@ private fun BrandMark(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
+            modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

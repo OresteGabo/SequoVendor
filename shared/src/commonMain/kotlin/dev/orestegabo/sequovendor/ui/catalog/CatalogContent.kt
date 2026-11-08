@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor.ui.catalog
 
+import dev.orestegabo.sequo.design.SequoDesign
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Column
@@ -9,12 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import dev.orestegabo.sequo.design.SequoActionButton as Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import dev.orestegabo.sequo.design.SequoOutlineButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -143,7 +145,7 @@ internal fun CatalogContent(
         .filter { product -> selectedCategory == null || product.category == selectedCategory }
         .filter { product -> selectedStatus?.matches(product.status) ?: true }
 
-    LazyColumn(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(appText(Res.string.catalog_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -201,7 +203,7 @@ internal fun CatalogContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it.take(80) },
@@ -267,7 +269,7 @@ internal fun CatalogContent(
                 VendorCard {
                     Text(
                         appText(Res.string.catalog_empty),
-                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        modifier = Modifier.fillMaxWidth().padding(SequoDesign.CardPadding),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -294,7 +296,7 @@ private fun CatalogProduct.photoStatusLabel() = when {
 @Composable
 private fun ProductCard(product: CatalogProduct, onEdit: () -> Unit) {
     VendorCard {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -366,7 +368,7 @@ private fun ProductEditorCard(
     val priceRequired = product.name.isBlank() || product.priceCfa != null
     val canSave = name.isNotBlank() && (!priceRequired || price.toIntOrNull() != null)
     VendorCard {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(appText(Res.string.catalog_editor_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

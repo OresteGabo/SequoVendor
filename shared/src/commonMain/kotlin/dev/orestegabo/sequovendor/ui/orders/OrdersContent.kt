@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor.ui.orders
 
+import dev.orestegabo.sequo.design.SequoDesign
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,10 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
+import dev.orestegabo.sequo.design.SequoActionButton as Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import dev.orestegabo.sequo.design.SequoOutlineButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
@@ -133,7 +135,7 @@ internal fun OrdersContent(
     val visibleOrders = orders.filter { selectedTab.accepts(it) }
 
     if (detailLoading && detailOrder == null) {
-        Column(modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier.padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(appText(Res.string.order_detail_title), style = MaterialTheme.typography.titleLarge)
             CircularProgressIndicator()
             Text(appText(Res.string.orders_loading))
@@ -157,7 +159,7 @@ internal fun OrdersContent(
         return
     }
 
-    LazyColumn(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -192,7 +194,7 @@ internal fun OrdersContent(
                 VendorCard {
                     Text(
                         appText(Res.string.orders_action_failed),
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(SequoDesign.CardPadding),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -202,7 +204,7 @@ internal fun OrdersContent(
             item {
                 VendorCard {
                     Row(
-                        Modifier.fillMaxWidth().padding(18.dp),
+                        Modifier.fillMaxWidth().padding(SequoDesign.CardPadding),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -214,7 +216,7 @@ internal fun OrdersContent(
         } else if (visibleOrders.isEmpty()) {
             item {
                 VendorCard {
-                    Text(appText(Res.string.orders_empty), modifier = Modifier.padding(18.dp))
+                    Text(appText(Res.string.orders_empty), modifier = Modifier.padding(SequoDesign.CardPadding))
                 }
             }
         }
@@ -252,7 +254,7 @@ private fun OrderCard(
     }
 
     VendorCard {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             VendorTitleStatusRow(order.subOrderCode, order.status.label())
             KeyValueRow(appText(Res.string.order_item_subtotal), order.itemSubtotalCfa.formatCfa())
             KeyValueRow(appText(Res.string.order_net), order.merchantNetCfa.formatCfa())
@@ -369,7 +371,7 @@ private fun OrderDetailContent(
         }
     }
 
-    LazyColumn(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -384,7 +386,7 @@ private fun OrderDetailContent(
         if (isLoading) {
             item {
                 VendorCard {
-                    Row(Modifier.fillMaxWidth().padding(18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator()
                         Text(appText(Res.string.orders_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -399,13 +401,13 @@ private fun OrderDetailContent(
         if (actionFailed) {
             item {
                 VendorCard {
-                    Text(appText(Res.string.orders_action_failed), modifier = Modifier.fillMaxWidth().padding(14.dp), color = MaterialTheme.colorScheme.error)
+                    Text(appText(Res.string.orders_action_failed), modifier = Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.dashboard_quick_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     OrderDetailActions(
                         order = order,
@@ -428,7 +430,7 @@ private fun OrderDetailContent(
         }
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     VendorTitleStatusRow(order.subOrderCode, order.status.label())
                     KeyValueRow(appText(Res.string.order_id), order.orderId ?: "-")
                     ActivityField(appText(Res.string.finance_order_state), merchantOrderState(order.orderStatus))
@@ -451,7 +453,7 @@ private fun OrderDetailContent(
         }
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.order_financial_summary), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     KeyValueRow(appText(Res.string.order_item_subtotal), order.itemSubtotalCfa.formatCfa())
                     KeyValueRow(appText(Res.string.order_commission), order.commissionCfa.formatCfa())
@@ -461,7 +463,7 @@ private fun OrderDetailContent(
         }
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.order_sla_panel), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     KeyValueRow(appText(Res.string.order_seller_response_due), (sla?.sellerResponseDueAt ?: order.sellerResponseDueAt).formatIsoTimestampOrDash())
                     KeyValueRow(appText(Res.string.order_packing_due), (sla?.packingDueAt ?: order.packingDueAt).formatIsoTimestampOrDash())
@@ -474,7 +476,7 @@ private fun OrderDetailContent(
         }
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.order_status_timeline), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     KeyValueRow(appText(Res.string.order_created_at), order.createdAt.formatIsoTimestampOrDash())
                     KeyValueRow(appText(Res.string.order_status_accepted), order.acceptedAt.formatIsoTimestampOrDash())

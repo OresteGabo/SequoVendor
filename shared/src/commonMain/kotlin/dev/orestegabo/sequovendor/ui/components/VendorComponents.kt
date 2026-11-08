@@ -1,6 +1,5 @@
 package dev.orestegabo.sequovendor.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,11 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,29 +21,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.orestegabo.sequovendor.theme.VendorPrimary
-import dev.orestegabo.sequovendor.theme.VendorSecondary
+import dev.orestegabo.sequo.design.SequoDesign
+import dev.orestegabo.sequo.design.SequoPanel
+import dev.orestegabo.sequo.design.SequoActionButton
 
 @Composable
 internal fun VendorCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        content = content,
-    )
+    SequoPanel(modifier = modifier, content = content)
 }
 
 @Composable
@@ -54,22 +43,8 @@ internal fun VendorPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .height(52.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Brush.horizontalGradient(listOf(VendorPrimary, VendorSecondary)))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+    SequoActionButton(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -84,10 +59,10 @@ internal fun VendorChip(
     val border = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.42f)
     Box(
         modifier = modifier
-            .height(44.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .heightIn(min = SequoDesign.ControlHeight)
+            .clip(SequoDesign.ControlShape)
             .background(background)
-            .border(1.dp, border, RoundedCornerShape(8.dp))
+            .border(1.dp, border, SequoDesign.ControlShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
@@ -107,12 +82,12 @@ internal fun VendorMark(label: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(42.dp)
-            .background(VendorPrimary, CircleShape),
+            .background(MaterialTheme.colorScheme.primary, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label.take(1).uppercase(),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Black,
         )
@@ -122,7 +97,7 @@ internal fun VendorMark(label: String, modifier: Modifier = Modifier) {
 @Composable
 internal fun MetricTile(label: String, value: String, modifier: Modifier = Modifier) {
     VendorCard(modifier) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }
@@ -164,7 +139,7 @@ internal fun VendorTitleStatusRow(title: String, status: String) {
 
 @Composable
 internal fun VendorStatusBadge(label: String) {
-    Surface(modifier = Modifier.widthIn(max = 180.dp), shape = RoundedCornerShape(8.dp),
+    Surface(modifier = Modifier.widthIn(max = 180.dp), shape = SequoDesign.ControlShape,
         color = MaterialTheme.colorScheme.primaryContainer) {
         Text(label, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer,

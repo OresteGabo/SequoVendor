@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor.ui.chrome
 
+import dev.orestegabo.sequo.design.SequoDesign
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,7 +44,7 @@ internal fun VendorTopBar(
     onThemePreferenceChange: (AppThemePreference) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier.fillMaxWidth().padding(horizontal = SequoDesign.ScreenGutter, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 VendorMark("S")
@@ -97,7 +99,7 @@ internal fun VendorNavigationBar(
     onSectionSelected: (VendorSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(modifier.fillMaxWidth().padding(horizontal = SequoDesign.ScreenGutter, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         VendorPrimarySections.forEach { section ->
             VendorChip(
                 label = section.label(),

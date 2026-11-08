@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor.ui.dashboard
 
+import dev.orestegabo.sequo.design.SequoDesign
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,10 +14,10 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material3.Button
+import dev.orestegabo.sequo.design.SequoActionButton as Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import dev.orestegabo.sequo.design.SequoOutlineButton as OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -128,8 +130,8 @@ internal fun DashboardContent(
         .take(4)
 
     LazyColumn(
-        modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier.padding(horizontal = SequoDesign.ScreenGutter),
+        verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -141,7 +143,7 @@ internal fun DashboardContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     StoreStatusSummary(store, appText(Res.string.dashboard_store_status))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
@@ -178,7 +180,7 @@ internal fun DashboardContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.dashboard_sla_warnings), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     if (responseWarnings.isEmpty() && packingWarnings.isEmpty()) {
                         Text(appText(Res.string.dashboard_no_sla_warnings), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -195,7 +197,7 @@ internal fun DashboardContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.dashboard_quick_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     DashboardActionRow(Icons.Filled.ReceiptLong, appText(Res.string.dashboard_view_pending), "${appText(Res.string.order_status_pending)}: $pending", onOrdersClick)
                     DashboardActionRow(Icons.Filled.Inventory2, appText(Res.string.dashboard_edit_catalog), productsNeedingPhotos.toString(), onCatalogClick)
@@ -208,7 +210,7 @@ internal fun DashboardContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.dashboard_recent_orders), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     if (recentOrders.isEmpty()) {
                         Text(appText(Res.string.dashboard_no_recent_orders), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -223,7 +225,7 @@ internal fun DashboardContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(appText(Res.string.dashboard_api_connection), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(connectionState.label(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

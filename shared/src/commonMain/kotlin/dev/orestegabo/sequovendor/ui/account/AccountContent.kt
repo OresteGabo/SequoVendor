@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor.ui.account
 
+import dev.orestegabo.sequo.design.SequoDesign
+
 import dev.orestegabo.sequovendor.core.network.NetworkConfig
 
 import androidx.compose.foundation.layout.Arrangement
@@ -15,12 +17,12 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
+import dev.orestegabo.sequo.design.SequoActionButton as Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import dev.orestegabo.sequo.design.SequoOutlineButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -165,8 +167,8 @@ internal fun AccountContent(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier.padding(horizontal = SequoDesign.ScreenGutter),
+        verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -178,7 +180,7 @@ internal fun AccountContent(
         item {
             VendorCard {
                 Row(
-                    Modifier.fillMaxWidth().padding(14.dp),
+                    Modifier.fillMaxWidth().padding(SequoDesign.CardPadding),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -213,7 +215,7 @@ internal fun AccountContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Text(appText(Res.string.account_sales_payments), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -227,7 +229,7 @@ internal fun AccountContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(appText(Res.string.account_language), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         VendorChip(appText(Res.string.language_en), language == AppLanguage.English, { onLanguageChange(AppLanguage.English) }, Modifier.weight(1f))
@@ -246,7 +248,7 @@ internal fun AccountContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.account_notifications_entry), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     OutlinedButton(onClick = onNotificationsClick, modifier = Modifier.fillMaxWidth()) {
                         Text(appText(Res.string.account_open_notifications))
@@ -258,7 +260,7 @@ internal fun AccountContent(
         if (pendingAdminLoginRequestCount > 0) {
             item {
                 VendorCard {
-                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(appText(Res.string.admin_login_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(appText(Res.string.admin_login_warning), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedButton(onClick = onAdminLoginRequestsClick, modifier = Modifier.fillMaxWidth()) {
@@ -287,7 +289,7 @@ internal fun AccountContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -362,7 +364,7 @@ private fun NegotiationsCard(
     val replyMessages = remember { mutableStateMapOf<String, String>() }
 
     VendorCard {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(appText(Res.string.account_negotiations), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(appText(if (localMode) Res.string.account_negotiation_demo else Res.string.account_negotiation_live), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedButton(onClick = onRefresh, enabled = !loading && actionInProgressId == null) { Text(appText(Res.string.account_negotiation_refresh)) }

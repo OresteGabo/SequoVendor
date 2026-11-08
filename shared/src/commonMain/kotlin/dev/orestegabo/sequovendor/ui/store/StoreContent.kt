@@ -1,14 +1,16 @@
 package dev.orestegabo.sequovendor.ui.store
 
+import dev.orestegabo.sequo.design.SequoDesign
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
+import dev.orestegabo.sequo.design.SequoActionButton as Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import dev.orestegabo.sequo.design.SequoOutlineButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -96,7 +98,7 @@ internal fun StoreContent(
         else -> appText(Res.string.store_preview_closed)
     }
 
-    LazyColumn(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(appText(Res.string.store_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -106,7 +108,7 @@ internal fun StoreContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     StoreStatusSummary(status, appText(Res.string.store_operational_state))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -136,7 +138,7 @@ internal fun StoreContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.store_weekly_hours), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     OutlinedButton(
                         onClick = { weeklyHours = copyMondayToWeekdays(weeklyHours) },
@@ -165,7 +167,7 @@ internal fun StoreContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.store_temporary_reason), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = closureReason,
@@ -189,7 +191,7 @@ internal fun StoreContent(
 
         item {
             VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(appText(Res.string.store_customer_preview), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(customerPreview, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -270,7 +272,7 @@ private fun TemporaryExceptionsCard(
     val canAdd = date.isNotBlank() && validHours
 
     VendorCard {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(appText(Res.string.store_temporary_exceptions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (exceptions.isEmpty()) {
                 Text(appText(Res.string.store_no_exceptions), color = MaterialTheme.colorScheme.onSurfaceVariant)
