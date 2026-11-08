@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.core.auth.createVendorWorkspaceClient
+import dev.orestegabo.sequovendor.core.auth.completeVendorSignOut
 import dev.orestegabo.sequovendor.core.auth.LocalNativeAccount
 import dev.orestegabo.sequovendor.core.auth.workspaceKey
 import dev.orestegabo.sequovendor.core.auth.AuthApiClient
@@ -251,6 +252,20 @@ internal fun SequoVendorShell(
             rememberedUser = null
             session = null
         }
+    }
+
+    suspend fun signOutCurrentWorkspace() {
+        completeVendorSignOut(
+            clearStoredSession = { authRepository.logout() },
+            clearWorkspace = {
+                rememberedUser = null
+                merchantChoice = null
+                session = null
+                showLocalTestAccounts = false
+                authNotice = null
+            },
+            signOutProvider = onGoogleSignOut,
+        )
     }
 
     suspend fun openMerchantWorkspace(user: CurrentUser, selection: String? = null) {
@@ -951,9 +966,7 @@ internal fun SequoVendorShell(
                 },
                 onLogout = {
                     scope.launch {
-                        authRepository.logout()
-                        onGoogleSignOut()
-                        session = null
+                        signOutCurrentWorkspace()
                         drawerState.close()
                     }
                 },
@@ -1105,9 +1118,7 @@ internal fun SequoVendorShell(
                             onFinancialRecordsClick = { currentSection = VendorSection.Dashboard },
                             onLogout = {
                                 scope.launch {
-                                    authRepository.logout()
-                                    onGoogleSignOut()
-                                    session = null
+                                    signOutCurrentWorkspace()
                                 }
                             },
                             modifier = Modifier.fillMaxSize(),
