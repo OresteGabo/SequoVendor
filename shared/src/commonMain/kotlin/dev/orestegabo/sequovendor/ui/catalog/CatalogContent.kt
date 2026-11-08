@@ -101,7 +101,6 @@ import sequovendor.shared.generated.resources.catalog_status_draft
 import sequovendor.shared.generated.resources.catalog_status_paused
 import sequovendor.shared.generated.resources.catalog_stock
 import sequovendor.shared.generated.resources.catalog_synced_badge
-import sequovendor.shared.generated.resources.catalog_title
 
 @OptIn(ExperimentalUuidApi::class)
 @Composable
@@ -146,27 +145,28 @@ internal fun CatalogContent(
         .filter { product -> selectedStatus?.matches(product.status) ?: true }
 
     LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(appText(Res.string.catalog_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(appText(Res.string.catalog_detail), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(
-                    enabled = editingProduct == null && !saveInProgress,
-                    onClick = {
-                        onClearSaveResult()
-                        editingProduct = CatalogProduct(
-                            id = "local-product-${Uuid.random()}",
-                            name = "",
-                            syncState = CatalogProductSyncState.LOCAL_DRAFT,
+        if (editingProduct == null) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(appText(Res.string.catalog_detail), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Button(
+                        enabled = editingProduct == null && !saveInProgress,
+                        onClick = {
+                            onClearSaveResult()
+                            editingProduct = CatalogProduct(
+                                id = "local-product-${Uuid.random()}",
+                                name = "",
+                                syncState = CatalogProductSyncState.LOCAL_DRAFT,
+                            )
+                        },
+                    ) { Text(appText(Res.string.catalog_add)) }
+                    lastSaveState?.let { state ->
+                        Text(
+                            appText(state.savedLabel()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
                         )
-                    },
-                ) { Text(appText(Res.string.catalog_add)) }
-                lastSaveState?.let { state ->
-                    Text(
-                        appText(state.savedLabel()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    }
                 }
             }
         }
