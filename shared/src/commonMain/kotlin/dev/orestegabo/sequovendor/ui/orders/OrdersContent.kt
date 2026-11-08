@@ -43,10 +43,17 @@ import dev.orestegabo.sequovendor.model.VendorOrderHandoffMethod
 import dev.orestegabo.sequovendor.model.formatCfa
 import dev.orestegabo.sequovendor.model.formatIsoTimestampOrDash
 import dev.orestegabo.sequovendor.ui.components.KeyValueRow
+import dev.orestegabo.sequovendor.ui.dashboard.ActivityField
+import dev.orestegabo.sequovendor.ui.dashboard.customerPaymentState
+import dev.orestegabo.sequovendor.ui.dashboard.merchantOrderState
 import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorErrorKind
 import dev.orestegabo.sequovendor.ui.components.VendorErrorPanel
 import sequovendor.shared.generated.resources.Res
+import sequovendor.shared.generated.resources.finance_order_state
+import sequovendor.shared.generated.resources.finance_customer_payment
+import sequovendor.shared.generated.resources.finance_created
+import sequovendor.shared.generated.resources.finance_delivered
 import sequovendor.shared.generated.resources.dashboard_quick_actions
 import sequovendor.shared.generated.resources.order_accept
 import sequovendor.shared.generated.resources.order_commission
@@ -122,6 +129,15 @@ internal fun OrdersContent(
     var selectedTab by remember { mutableStateOf(VendorOrdersTab.New) }
     val tabs = VendorOrdersTab.entries
     val visibleOrders = orders.filter { selectedTab.accepts(it) }
+
+    if (detailLoading && detailOrder == null) {
+        Column(modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(appText(Res.string.order_detail_title), style = MaterialTheme.typography.titleLarge)
+            CircularProgressIndicator()
+            Text(appText(Res.string.orders_loading))
+        }
+        return
+    }
 
     detailOrder?.let { order ->
         OrderDetailContent(
@@ -396,6 +412,10 @@ private fun OrderDetailContent(
                         Text(order.status.label(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     }
                     KeyValueRow(appText(Res.string.order_id), order.orderId ?: "-")
+                    ActivityField(appText(Res.string.finance_order_state), merchantOrderState(order.orderStatus))
+                    ActivityField(appText(Res.string.finance_customer_payment), customerPaymentState(order.orderPaymentStatus))
+                    ActivityField(appText(Res.string.finance_created), order.orderCreatedAt.formatIsoTimestampOrDash())
+                    order.deliveredAt?.let { ActivityField(appText(Res.string.finance_delivered), it.formatIsoTimestampOrDash()) }
                     KeyValueRow(appText(Res.string.order_packages), order.packageCount.toString())
                     if (order.lines.isEmpty()) {
                         Text(appText(Res.string.order_lines_unavailable), color = MaterialTheme.colorScheme.onSurfaceVariant)

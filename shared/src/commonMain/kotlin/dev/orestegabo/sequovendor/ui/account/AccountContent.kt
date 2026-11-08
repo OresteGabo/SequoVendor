@@ -114,7 +114,7 @@ import sequovendor.shared.generated.resources.account_title
 import sequovendor.shared.generated.resources.admin_login_title
 import sequovendor.shared.generated.resources.admin_login_warning
 import sequovendor.shared.generated.resources.common_not_available_yet
-import sequovendor.shared.generated.resources.dashboard_merchant_net_pending
+import sequovendor.shared.generated.resources.finance_open_dashboard
 import sequovendor.shared.generated.resources.dashboard_returns_awaiting
 import sequovendor.shared.generated.resources.dashboard_sales_today
 import sequovendor.shared.generated.resources.dashboard_settlement_state
@@ -150,8 +150,7 @@ internal fun AccountContent(
     onRejectNegotiation: (VendorNegotiationThread, String) -> Unit,
     onCounterNegotiation: (VendorNegotiationThread, Int) -> Unit,
     onMessageNegotiation: (VendorNegotiationThread, String) -> Unit,
-    salesToday: Int,
-    merchantNetPendingCfa: Int,
+    onFinancialRecordsClick: () -> Unit,
     onLogout: () -> Unit,
     pendingAdminLoginRequestCount: Int = 0,
     onAdminLoginRequestsClick: () -> Unit = {},
@@ -209,26 +208,11 @@ internal fun AccountContent(
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(appText(Res.string.account_payments_accepted), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    PaymentChip(appText(Res.string.account_payment_mobile_money))
-                    PaymentChip(appText(Res.string.account_payment_card))
-                    PaymentChip(appText(Res.string.account_payment_cash))
-                }
-            }
-        }
-
-        item {
-            VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Text(appText(Res.string.account_sales_payments), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
-                    KeyValueRow(appText(Res.string.dashboard_sales_today), salesToday.toString())
-                    KeyValueRow(appText(Res.string.dashboard_merchant_net_pending), merchantNetPendingCfa.formatCfa())
-                    KeyValueRow(appText(Res.string.dashboard_returns_awaiting), appText(Res.string.common_not_available_yet))
-                    KeyValueRow(appText(Res.string.dashboard_settlement_state), appText(Res.string.common_not_available_yet))
+                    OutlinedButton(onClick = onFinancialRecordsClick) {
+                        Text(appText(Res.string.finance_open_dashboard))
+                    }
                 }
             }
         }

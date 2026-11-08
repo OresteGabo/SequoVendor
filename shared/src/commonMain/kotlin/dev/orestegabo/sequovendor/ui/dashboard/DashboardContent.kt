@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.core.activity.MerchantActivitySnapshot
+import dev.orestegabo.sequovendor.core.network.ApiFailure
 import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
@@ -92,6 +94,10 @@ internal fun DashboardContent(
     products: List<CatalogProduct>,
     store: StoreAvailabilityState,
     connectionState: DashboardConnectionState,
+    activity: MerchantActivitySnapshot?,
+    activityLoading: Boolean,
+    activityFailure: ApiFailure?,
+    onRefreshActivity: () -> Unit,
     onStoreOpenChange: (Boolean) -> Unit,
     onOrdersClick: () -> Unit,
     onCatalogClick: () -> Unit,
@@ -102,18 +108,6 @@ internal fun DashboardContent(
     val accepted = orders.count { it.status == MerchantSubOrderStatus.ACCEPTED }
     val preparing = orders.count { it.status == MerchantSubOrderStatus.PREPARING }
     val ready = orders.count { it.status == MerchantSubOrderStatus.PACKED_READY }
-    val salesToday = orders.count { it.status != MerchantSubOrderStatus.REJECTED && it.status != MerchantSubOrderStatus.CANCELLED }
-    val todayNet = orders
-        .filter { it.status != MerchantSubOrderStatus.REJECTED && it.status != MerchantSubOrderStatus.CANCELLED }
-        .sumOf { it.merchantNetCfa }
-    val merchantNetPending = orders
-        .filter {
-            it.status == MerchantSubOrderStatus.ACCEPTED ||
-                it.status == MerchantSubOrderStatus.PREPARING ||
-                it.status == MerchantSubOrderStatus.PACKED_READY ||
-                it.status == MerchantSubOrderStatus.HANDED_TO_COURIER
-        }
-        .sumOf { it.merchantNetCfa }
     val productsNeedingPhotos = products.count { !it.cameraVerified }
     val responseWarnings = orders
         .filter { it.status == MerchantSubOrderStatus.MERCHANT_PENDING && !it.sellerResponseDueAt.isNullOrBlank() }
@@ -182,31 +176,7 @@ internal fun DashboardContent(
         }
 
         item {
-            VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(appText(Res.string.home_today_net), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    Text(todayNet.formatCfa(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    KeyValueRow(appText(Res.string.home_products_attention), productsNeedingPhotos.toString())
-                }
-            }
-        }
-
-        item {
-            VendorCard {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text(appText(Res.string.dashboard_finance_visibility), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                    KeyValueRow(appText(Res.string.dashboard_sales_today), salesToday.toString())
-                    KeyValueRow(appText(Res.string.dashboard_merchant_net_pending), merchantNetPending.formatCfa())
-                    KeyValueRow(appText(Res.string.dashboard_returns_awaiting), appText(Res.string.common_not_available_yet))
-                    KeyValueRow(appText(Res.string.dashboard_settlement_state), appText(Res.string.common_not_available_yet))
-                }
-            }
+            MerchantActivityPanel(activity, activityLoading, activityFailure, session.localMode, onRefreshActivity)
         }
 
         item {
@@ -331,7 +301,7 @@ private fun DashboardConnectionState.label(): String = when (this) {
 }
 
 @Composable
-private fun MerchantSubOrderStatus.label(): String = when (this) {
+internal fun MerchantSubOrderStatus.label(): String = when (this) {
     MerchantSubOrderStatus.MERCHANT_PENDING -> appText(Res.string.order_status_pending)
     MerchantSubOrderStatus.ACCEPTED -> appText(Res.string.order_status_accepted)
     MerchantSubOrderStatus.PREPARING -> appText(Res.string.order_status_preparing)

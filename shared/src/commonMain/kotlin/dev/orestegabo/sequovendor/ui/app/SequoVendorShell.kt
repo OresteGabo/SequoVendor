@@ -39,6 +39,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +52,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.orestegabo.sequovendor.core.auth.AuthApiClient
+import dev.orestegabo.sequovendor.core.activity.MerchantActivityApiClient
+import dev.orestegabo.sequovendor.core.activity.MerchantActivitySnapshot
 import dev.orestegabo.sequovendor.core.auth.AuthApiException
 import dev.orestegabo.sequovendor.core.auth.AuthRepository
 import dev.orestegabo.sequovendor.core.auth.authorizedMerchantIds
@@ -417,19 +420,19 @@ internal fun SequoVendorShell(
     }
 
     val activeSession = requireNotNull(session)
-    var dashboardOrders by remember(activeSession.merchantId, activeSession.localMode) {
+    var dashboardOrders by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
         mutableStateOf(if (activeSession.localMode) localOrders else emptyList<MerchantSubOrder>())
     }
-    var dashboardConnectionState by remember(activeSession.merchantId, activeSession.localMode) {
+    var dashboardConnectionState by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
         mutableStateOf(if (activeSession.localMode) DashboardConnectionState.LocalFallback else DashboardConnectionState.Connected)
     }
-    var ordersLoading by remember { mutableStateOf(false) }
-    var orderActionInProgressId by remember { mutableStateOf<String?>(null) }
-    var orderActionFailed by remember { mutableStateOf(false) }
-    var detailOrder by remember { mutableStateOf<MerchantSubOrder?>(null) }
-    var detailSla by remember { mutableStateOf<MerchantSlaInfo?>(null) }
-    var detailLoading by remember { mutableStateOf(false) }
-    var detailOffline by remember { mutableStateOf(false) }
+    var ordersLoading by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var orderActionInProgressId by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf<String?>(null) }
+    var orderActionFailed by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var detailOrder by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf<MerchantSubOrder?>(null) }
+    var detailSla by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf<MerchantSlaInfo?>(null) }
+    var detailLoading by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var detailOffline by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
     var catalogLoading by remember { mutableStateOf(false) }
     var catalogOffline by remember { mutableStateOf(false) }
     var catalogSaveInProgress by remember { mutableStateOf(false) }
@@ -444,15 +447,27 @@ internal fun SequoVendorShell(
     var negotiationFailure by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf<ApiFailure?>(null) }
     var negotiationsLoading by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf(false) }
     var negotiationsStale by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf(true) }
-    val salesToday = dashboardOrders.count { it.status != MerchantSubOrderStatus.REJECTED && it.status != MerchantSubOrderStatus.CANCELLED }
-    val merchantNetPendingCfa = dashboardOrders
-        .filter {
-            it.status == MerchantSubOrderStatus.ACCEPTED ||
-                it.status == MerchantSubOrderStatus.PREPARING ||
-                it.status == MerchantSubOrderStatus.PACKED_READY ||
-                it.status == MerchantSubOrderStatus.HANDED_TO_COURIER
-        }
-        .sumOf { it.merchantNetCfa }
+    var activitySnapshot by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf<MerchantActivitySnapshot?>(null) }
+    var activityLoading by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var activityFailure by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf<ApiFailure?>(null) }
+    var activityRefresh by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(0) }
+    fun sameMerchantSession(): Boolean = session?.userId == activeSession.userId &&
+        session?.merchantId == activeSession.merchantId && session?.localMode == activeSession.localMode
+    val activityClient = remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
+        if (activeSession.localMode) null else MerchantActivityApiClient(httpClient = createSequoVendorHttpClient(
+            accessTokenProvider = { session?.takeIf { sameMerchantSession() }?.accessToken },
+            refreshAccessToken = {
+                val restoredUser = authRepository.restoreSavedSession()
+                val refreshedToken = authRepository.getSavedSession()?.accessToken
+                if (sameMerchantSession() && restoredUser?.id == activeSession.userId &&
+                    activeSession.merchantId in restoredUser.authorizedMerchantIds() && !refreshedToken.isNullOrBlank()) {
+                    session = session?.copy(accessToken = refreshedToken)
+                    true
+                } else false
+            },
+        ))
+    }
+    DisposableEffect(activityClient) { onDispose { activityClient?.close() } }
     val storeRepository: VendorStoreRepository = remember { LocalVendorStoreRepository(store) }
     val negotiationRepository: VendorNegotiationRepository = remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
         if (activeSession.localMode) FakeVendorNegotiationRepository(localNegotiations)
@@ -581,20 +596,25 @@ internal fun SequoVendorShell(
 
     suspend fun refreshMerchantOrders(showLoading: Boolean = true) {
         if (showLoading) ordersLoading = true
-        when (val result = fulfillmentRepository.listSubOrders(activeSession.merchantId)) {
-            is ApiResult.Success -> {
-                dashboardOrders = result.value
-                dashboardConnectionState = if (activeSession.localMode) {
-                    DashboardConnectionState.LocalFallback
-                } else {
-                    DashboardConnectionState.Connected
+        if (!activeSession.localMode) dashboardOrders = emptyList()
+        try {
+            val result = fulfillmentRepository.listSubOrders(activeSession.merchantId)
+            if (!sameMerchantSession()) return
+            when (result) {
+                is ApiResult.Success -> {
+                    dashboardOrders = result.value
+                    dashboardConnectionState = if (activeSession.localMode) DashboardConnectionState.LocalFallback else DashboardConnectionState.Connected
+                }
+                is ApiResult.Failure -> {
+                    dashboardOrders = emptyList()
+                    detailOrder = null
+                    detailSla = null
+                    activitySnapshot = null
+                    activityFailure = result.error
+                    dashboardConnectionState = DashboardConnectionState.ErrorFallback
                 }
             }
-            is ApiResult.Failure -> {
-                dashboardConnectionState = DashboardConnectionState.ErrorFallback
-            }
-        }
-        ordersLoading = false
+        } finally { if (sameMerchantSession()) ordersLoading = false }
     }
 
     suspend fun refreshCatalog(showLoading: Boolean = true) {
@@ -773,9 +793,12 @@ internal fun SequoVendorShell(
     ) {
         if (showLoading) detailLoading = true
         detailOffline = false
-        fallback?.let { detailOrder = it }
+        detailOrder = if (activeSession.localMode) fallback else null
+        detailSla = null
 
-        when (val orderResult = fulfillmentRepository.getSubOrder(subOrderId, activeSession.merchantId)) {
+        val orderResult = fulfillmentRepository.getSubOrder(subOrderId, activeSession.merchantId)
+        if (!sameMerchantSession()) return
+        when (orderResult) {
             is ApiResult.Success -> {
                 detailOrder = orderResult.value
                 dashboardConnectionState = if (activeSession.localMode) {
@@ -784,14 +807,21 @@ internal fun SequoVendorShell(
                     DashboardConnectionState.Connected
                 }
                 replaceMerchantOrder(orderResult.value)
-                when (val slaResult = fulfillmentRepository.getSla(subOrderId, activeSession.merchantId)) {
-                    is ApiResult.Success -> detailSla = slaResult.value
-                    is ApiResult.Failure -> detailSla = orderResult.value.sla
+                val slaResult = fulfillmentRepository.getSla(subOrderId, activeSession.merchantId)
+                if (!sameMerchantSession()) return
+                detailSla = when (slaResult) {
+                    is ApiResult.Success -> slaResult.value
+                    is ApiResult.Failure -> orderResult.value.sla
                 }
             }
             is ApiResult.Failure -> {
                 detailOffline = true
-                detailSla = fallback?.sla
+                detailOrder = null
+                detailSla = null
+                dashboardOrders = emptyList()
+                activitySnapshot = null
+                activityFailure = orderResult.error
+                dashboardConnectionState = DashboardConnectionState.ErrorFallback
             }
         }
         detailLoading = false
@@ -828,8 +858,11 @@ internal fun SequoVendorShell(
                         reason = reason.orEmpty(),
                     )
                 }
+                if (!sameMerchantSession()) return@launch
                 when (result) {
                     is ApiResult.Success -> {
+                        activitySnapshot = null
+                        activityRefresh++
                         replaceMerchantOrder(result.value)
                         if (detailOrder?.id == result.value.id) {
                             detailOrder = result.value
@@ -843,6 +876,11 @@ internal fun SequoVendorShell(
                     }
                     is ApiResult.Failure -> {
                         orderActionFailed = true
+                        dashboardOrders = emptyList()
+                        detailOrder = null
+                        detailSla = null
+                        activitySnapshot = null
+                        activityFailure = result.error
                         dashboardConnectionState = DashboardConnectionState.ErrorFallback
                     }
                 }
@@ -850,6 +888,20 @@ internal fun SequoVendorShell(
                 orderActionInProgressId = null
             }
         }
+    }
+
+    LaunchedEffect(activityClient, activityRefresh) {
+        activitySnapshot = null
+        activityFailure = null
+        activityLoading = activityClient != null
+        try {
+            val result = activityClient?.load(activeSession.merchantId) ?: return@LaunchedEffect
+            if (!sameMerchantSession() || activityFailure != null) return@LaunchedEffect
+            when (result) {
+                is ApiResult.Success -> activitySnapshot = result.value
+                is ApiResult.Failure -> activityFailure = result.error
+            }
+        } finally { if (sameMerchantSession()) activityLoading = false }
     }
 
     LaunchedEffect(fulfillmentRepository, activeSession.merchantId) {
@@ -924,6 +976,10 @@ internal fun SequoVendorShell(
                             products = products,
                             store = store,
                             connectionState = dashboardConnectionState,
+                            activity = activitySnapshot,
+                            activityLoading = activityLoading,
+                            activityFailure = activityFailure,
+                            onRefreshActivity = { activitySnapshot = null; activityRefresh++ },
                             onStoreOpenChange = setStoreOpen,
                             onOrdersClick = { currentSection = VendorSection.Orders },
                             onCatalogClick = { currentSection = VendorSection.Catalog },
@@ -1023,8 +1079,7 @@ internal fun SequoVendorShell(
                             onRejectNegotiation = { thread, reason -> handleNegotiationAction(thread) { negotiationRepository.reject(thread.id, reason) } },
                             onCounterNegotiation = { thread, amount -> handleNegotiationAction(thread) { negotiationRepository.counter(thread.id, amount) } },
                             onMessageNegotiation = { thread, message -> handleNegotiationAction(thread) { negotiationRepository.message(thread.id, message) } },
-                            salesToday = salesToday,
-                            merchantNetPendingCfa = merchantNetPendingCfa,
+                            onFinancialRecordsClick = { currentSection = VendorSection.Dashboard },
                             onLogout = {
                                 scope.launch {
                                     authRepository.logout()
