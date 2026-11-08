@@ -17,7 +17,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 
 class MerchantActivityApiClient(
-    private val baseUrl: String = NetworkConfig.ProductionBaseUrl,
+    private val baseUrl: String = NetworkConfig.BaseUrl,
     private val httpClient: HttpClient = createSequoVendorHttpClient(baseUrl),
 ) {
     suspend fun load(merchantId: String): ApiResult<MerchantActivitySnapshot> = try {

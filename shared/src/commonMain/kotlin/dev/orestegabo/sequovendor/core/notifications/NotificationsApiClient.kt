@@ -16,7 +16,7 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 
 class NotificationsApiClient(
-    private val baseUrl: String = NetworkConfig.ProductionBaseUrl,
+    private val baseUrl: String = NetworkConfig.BaseUrl,
     private val httpClient: HttpClient = createSequoVendorHttpClient(baseUrl),
 ) {
     suspend fun registerFcmToken(

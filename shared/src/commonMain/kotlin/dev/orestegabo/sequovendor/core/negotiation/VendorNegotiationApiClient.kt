@@ -82,7 +82,7 @@ internal data class NegotiationActionDto(
 )
 
 class VendorNegotiationApiClient(
-    private val baseUrl: String = NetworkConfig.ProductionBaseUrl,
+    private val baseUrl: String = NetworkConfig.BaseUrl,
     private val httpClient: HttpClient = createSequoVendorHttpClient(baseUrl),
 ) {
     suspend fun list(merchantId: String): List<VendorNegotiationThread> =

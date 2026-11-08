@@ -470,4 +470,7 @@
     <string name="finance_refund_not_submitted">Not submitted to provider</string>
     <string name="finance_refund_unconfirmed">Unconfirmed</string>
     <string name="finance_open_dashboard">View sales, returns and settlements</string>
+    <string name="account_build">Build target</string>
+    <string name="account_release">Release</string>
+    <string name="account_api_target">API target</string>
 </resources>

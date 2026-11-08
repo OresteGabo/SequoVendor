@@ -21,7 +21,7 @@ import kotlinx.serialization.Serializable
 import kotlin.time.Clock
 
 class CatalogApiClient(
-    private val baseUrl: String = NetworkConfig.ProductionBaseUrl,
+    private val baseUrl: String = NetworkConfig.BaseUrl,
     private val httpClient: HttpClient = createSequoVendorHttpClient(baseUrl),
 ) {
     suspend fun listMerchantProducts(

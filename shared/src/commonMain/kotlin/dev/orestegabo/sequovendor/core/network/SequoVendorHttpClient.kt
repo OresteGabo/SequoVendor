@@ -34,7 +34,7 @@ import sequovendor.shared.generated.resources.error_server_detail
 import sequovendor.shared.generated.resources.error_session_detail
 
 fun createSequoVendorHttpClient(
-    baseUrl: String = NetworkConfig.ProductionBaseUrl,
+    baseUrl: String = NetworkConfig.BaseUrl,
     json: Json = defaultNetworkJson,
     accessTokenProvider: (() -> String?)? = null,
     refreshAccessToken: (suspend () -> Boolean)? = null,

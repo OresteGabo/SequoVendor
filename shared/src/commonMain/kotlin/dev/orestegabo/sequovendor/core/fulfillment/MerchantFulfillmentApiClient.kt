@@ -13,7 +13,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 
 class MerchantFulfillmentApiClient(
-    private val baseUrl: String = NetworkConfig.ProductionBaseUrl,
+    private val baseUrl: String = NetworkConfig.BaseUrl,
     private val httpClient: HttpClient = createSequoVendorHttpClient(baseUrl),
 ) {
     suspend fun listSubOrders(

@@ -1,5 +1,7 @@
 package dev.orestegabo.sequovendor.ui.account
 
+import dev.orestegabo.sequovendor.core.network.NetworkConfig
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +51,9 @@ import dev.orestegabo.sequovendor.ui.components.KeyValueRow
 import dev.orestegabo.sequovendor.ui.components.VendorCard
 import dev.orestegabo.sequovendor.ui.components.VendorChip
 import sequovendor.shared.generated.resources.Res
+import sequovendor.shared.generated.resources.account_build
+import sequovendor.shared.generated.resources.account_release
+import sequovendor.shared.generated.resources.account_api_target
 import sequovendor.shared.generated.resources.account_api_check
 import sequovendor.shared.generated.resources.account_api_health
 import sequovendor.shared.generated.resources.account_api_healthy
@@ -160,6 +165,15 @@ internal fun AccountContent(
         modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item {
+            VendorCard {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(appText(Res.string.account_build), style = MaterialTheme.typography.titleMedium)
+                    KeyValueRow(appText(Res.string.account_release), NetworkConfig.ReleaseId)
+                    KeyValueRow(NetworkConfig.Environment, NetworkConfig.BaseUrl)
+                }
+            }
+        }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(appText(Res.string.account_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

@@ -470,4 +470,7 @@
     <string name="finance_refund_not_submitted">Non soumis au prestataire</string>
     <string name="finance_refund_unconfirmed">Non confirmé</string>
     <string name="finance_open_dashboard">Voir les ventes, retours et règlements</string>
+    <string name="account_build">Cible de compilation</string>
+    <string name="account_release">Version</string>
+    <string name="account_api_target">Cible API</string>
 </resources>
