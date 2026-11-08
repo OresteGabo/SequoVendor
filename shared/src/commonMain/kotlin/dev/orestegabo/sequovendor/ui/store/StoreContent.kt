@@ -30,6 +30,7 @@ import dev.orestegabo.sequovendor.model.StoreStatus
 import dev.orestegabo.sequovendor.model.formatIsoTimestampOrDash
 import dev.orestegabo.sequovendor.ui.components.KeyValueRow
 import dev.orestegabo.sequovendor.ui.components.VendorCard
+import sequovendor.shared.generated.resources.*
 import sequovendor.shared.generated.resources.Res
 import sequovendor.shared.generated.resources.store_add_exception
 import sequovendor.shared.generated.resources.store_closed
@@ -78,11 +79,15 @@ internal fun StoreContent(
     onClosureReasonChange: (String) -> Unit,
     onOpeningHoursChange: (List<OpeningHoursDay>) -> Unit,
     onAddTemporaryException: (OpeningHoursException) -> Unit,
+    onSaveClosureReason: () -> Unit = {},
+    changesEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val weeklyHours = status.openingHours.ifEmpty { defaultWeeklyHours() }.sortedBy { it.dayOfWeek }
+    var weeklyHours by remember(status.merchantId, status.updatedAt) { mutableStateOf(status.openingHours.sortedBy { it.dayOfWeek }) }
     val customerPreview = when {
-        status.open -> appText(Res.string.store_preview_open)
+        status.openStatus == "UNAVAILABLE" -> appText(Res.string.store_status_unavailable)
+        !status.configured -> appText(Res.string.store_not_configured)
+        status.canAcceptOrders ?: status.open -> appText(Res.string.store_preview_open)
         closureReason.isNotBlank() -> appText(Res.string.store_preview_closed_reason)
             .replace("%1\$s", closureReason)
         status.temporaryClosure?.reason?.isNotBlank() == true -> appText(Res.string.store_preview_closed_reason)
@@ -105,7 +110,7 @@ internal fun StoreContent(
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(appText(Res.string.store_operational_state), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text(
-                                if (status.open) appText(Res.string.store_open) else appText(Res.string.store_closed),
+                                storeAvailabilityLabel(status),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold,
@@ -121,22 +126,23 @@ internal fun StoreContent(
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = { onOpenChange(true) },
-                            enabled = !status.open,
+                            enabled = changesEnabled && (!status.configured || !status.open),
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(appText(Res.string.store_mark_open))
                         }
                         OutlinedButton(
                             onClick = { onOpenChange(false) },
-                            enabled = status.open,
+                            enabled = changesEnabled && (!status.configured || status.open),
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(appText(Res.string.store_mark_closed))
                         }
                     }
 
-                    KeyValueRow(appText(Res.string.store_weekday), status.weekdayHours)
-                    KeyValueRow(appText(Res.string.store_weekend), status.weekendHours)
+                    if (!status.configured) Text(appText(Res.string.store_timezone_new))
+                    KeyValueRow(appText(Res.string.store_weekday), status.weekdayHours.ifBlank { "—" })
+                    KeyValueRow(appText(Res.string.store_weekend), status.weekendHours.ifBlank { "—" })
                     KeyValueRow(appText(Res.string.store_last_updated), status.updatedAt.formatIsoTimestampOrDash())
                 }
             }
@@ -147,20 +153,26 @@ internal fun StoreContent(
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(appText(Res.string.store_weekly_hours), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     OutlinedButton(
-                        onClick = { onOpeningHoursChange(copyMondayToWeekdays(weeklyHours)) },
-                        enabled = weeklyHours.firstOrNull { it.dayOfWeek == 1 }?.isValidOpeningHours() == true,
+                        onClick = { weeklyHours = copyMondayToWeekdays(weeklyHours) },
+                        enabled = changesEnabled && weeklyHours.firstOrNull { it.dayOfWeek == 1 }?.isValidOpeningHours() == true,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(appText(Res.string.store_copy_monday_weekdays))
                     }
+                    if (weeklyHours.isEmpty()) {
+                        Text(appText(Res.string.store_hours_not_configured))
+                        OutlinedButton(enabled = changesEnabled, onClick = { weeklyHours = (1..7).map { OpeningHoursDay(it, "", "") } }) { Text(appText(Res.string.store_setup_hours)) }
+                    }
                     weeklyHours.forEach { day ->
                         OpeningHoursRow(
                             day = day,
+                            enabled = changesEnabled,
                             onDayChange = { updated ->
-                                onOpeningHoursChange(weeklyHours.map { if (it.dayOfWeek == updated.dayOfWeek) updated else it })
+                                weeklyHours = weeklyHours.map { if (it.dayOfWeek == updated.dayOfWeek) updated else it }
                             },
                         )
                     }
+                    if (weeklyHours.isNotEmpty()) Button(enabled = changesEnabled && weeklyHours.size == 7 && weeklyHours.all { it.isValidOpeningHours() }, onClick = { onOpeningHoursChange(weeklyHours) }) { Text(appText(Res.string.store_save_hours)) }
                 }
             }
         }
@@ -176,6 +188,7 @@ internal fun StoreContent(
                         minLines = 2,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Button(enabled = changesEnabled, onClick = onSaveClosureReason) { Text(appText(Res.string.store_save_closure_note)) }
                 }
             }
         }
@@ -183,6 +196,7 @@ internal fun StoreContent(
         item {
             TemporaryExceptionsCard(
                 exceptions = status.temporaryExceptions,
+                changesEnabled = changesEnabled,
                 onAddTemporaryException = onAddTemporaryException,
             )
         }
@@ -201,6 +215,7 @@ internal fun StoreContent(
 @Composable
 private fun OpeningHoursRow(
     day: OpeningHoursDay,
+    enabled: Boolean,
     onDayChange: (OpeningHoursDay) -> Unit,
 ) {
     val open = !day.closed
@@ -215,11 +230,12 @@ private fun OpeningHoursRow(
                 )
             }
             Switch(
+                enabled = enabled,
                 checked = open,
                 onCheckedChange = { checked ->
                     onDayChange(
                         if (checked) {
-                            day.copy(closed = false, opensAt = day.opensAt.ifBlank { "08:00" }, closesAt = day.closesAt.ifBlank { "18:00" })
+                            day.copy(closed = false)
                         } else {
                             day.copy(closed = true, opensAt = "", closesAt = "")
                         },
@@ -232,7 +248,7 @@ private fun OpeningHoursRow(
                 value = day.opensAt,
                 onValueChange = { onDayChange(day.copy(opensAt = sanitizeTimeInput(it))) },
                 label = { Text(appText(Res.string.store_opens_at)) },
-                enabled = open,
+                enabled = enabled && open,
                 isError = open && !day.isValidOpeningHours(),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
@@ -241,7 +257,7 @@ private fun OpeningHoursRow(
                 value = day.closesAt,
                 onValueChange = { onDayChange(day.copy(closesAt = sanitizeTimeInput(it))) },
                 label = { Text(appText(Res.string.store_closes_at)) },
-                enabled = open,
+                enabled = enabled && open,
                 isError = open && !day.isValidOpeningHours(),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
@@ -256,12 +272,13 @@ private fun OpeningHoursRow(
 @Composable
 private fun TemporaryExceptionsCard(
     exceptions: List<OpeningHoursException>,
+    changesEnabled: Boolean,
     onAddTemporaryException: (OpeningHoursException) -> Unit,
 ) {
     var date by remember { mutableStateOf("") }
     var closed by remember { mutableStateOf(true) }
-    var opensAt by remember { mutableStateOf("08:00") }
-    var closesAt by remember { mutableStateOf("18:00") }
+    var opensAt by remember { mutableStateOf("") }
+    var closesAt by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
     val validHours = closed || isValidTimeRange(opensAt, closesAt)
     val canAdd = date.isNotBlank() && validHours
@@ -345,7 +362,7 @@ private fun TemporaryExceptionsCard(
                     date = ""
                     reason = ""
                 },
-                enabled = canAdd,
+                enabled = changesEnabled && canAdd,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(appText(Res.string.store_add_exception))

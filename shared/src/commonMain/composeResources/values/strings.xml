@@ -473,4 +473,15 @@
     <string name="account_build">Build target</string>
     <string name="account_release">Release</string>
     <string name="account_api_target">API target</string>
+    <string name="store_sync_loading">Reading or saving server store settings…</string>
+    <string name="store_sync_failed">Store settings could not be confirmed. Refresh the server state or retry the saved change.</string>
+    <string name="store_refresh">Refresh store</string>
+    <string name="store_retry_save">Retry saved change</string>
+    <string name="store_not_configured">No store policy is configured. Existing ordering remains available until configured.</string>
+    <string name="store_status_unavailable">Store status unavailable</string>
+    <string name="store_setup_hours">Enter weekly hours</string>
+    <string name="store_save_hours">Save weekly hours</string>
+    <string name="store_hours_not_configured">No weekly schedule. Manual availability applies. Enter actual hours before saving.</string>
+    <string name="store_save_closure_note">Save closure note</string>
+    <string name="store_timezone_new">New store settings use Africa/Lome (Togo).</string>
 </resources>

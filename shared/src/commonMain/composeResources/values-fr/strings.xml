@@ -473,4 +473,15 @@
     <string name="account_build">Cible de compilation</string>
     <string name="account_release">Version</string>
     <string name="account_api_target">Cible API</string>
+    <string name="store_sync_loading">Lecture ou enregistrement des paramètres serveur…</string>
+    <string name="store_sync_failed">Les paramètres ne sont pas confirmés. Actualisez le serveur ou réessayez la modification enregistrée.</string>
+    <string name="store_refresh">Actualiser la boutique</string>
+    <string name="store_retry_save">Réessayer la modification</string>
+    <string name="store_not_configured">Aucune règle boutique n’est configurée. Les commandes existantes restent possibles avant configuration.</string>
+    <string name="store_status_unavailable">Statut boutique indisponible</string>
+    <string name="store_setup_hours">Saisir les horaires de la semaine</string>
+    <string name="store_save_hours">Enregistrer les horaires</string>
+    <string name="store_hours_not_configured">Aucun horaire hebdomadaire. La disponibilité manuelle s’applique. Saisissez les horaires réels avant d’enregistrer.</string>
+    <string name="store_save_closure_note">Enregistrer le motif de fermeture</string>
+    <string name="store_timezone_new">Les nouveaux paramètres utilisent Africa/Lome (Togo).</string>
 </resources>

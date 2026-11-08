@@ -7,6 +7,10 @@ import dev.orestegabo.sequovendor.model.StoreAvailabilityState
 import dev.orestegabo.sequovendor.model.TemporaryClosure
 
 interface VendorStoreRepository {
+    fun close() {}
+    fun hasPending(merchantId: String): Boolean = false
+    suspend fun retryPending(merchantId: String): ApiResult<StoreAvailabilityState> = getAvailability(merchantId)
+
     suspend fun getAvailability(merchantId: String): ApiResult<StoreAvailabilityState>
 
     suspend fun setOpen(

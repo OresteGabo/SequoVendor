@@ -320,7 +320,16 @@ data class StoreAvailabilityState(
     val temporaryExceptions: List<OpeningHoursException> = emptyList(),
     val temporaryClosure: TemporaryClosure? = null,
     val updatedAt: String? = null,
+    val configured: Boolean = true,
+    val timezone: String? = null,
+    val canAcceptOrders: Boolean? = null,
+    val closureReason: String? = null,
+    val history: List<StoreSettingChange> = emptyList(),
 )
+
+@Serializable
+data class StoreSettingChange(val id: String, val actorUserId: String, val reason: String,
+    val idempotencyKey: String, val createdAt: String)
 
 typealias StoreStatus = StoreAvailabilityState
 

@@ -40,6 +40,7 @@ import dev.orestegabo.sequovendor.feature.legal.LegalScreen
 import dev.orestegabo.sequovendor.feature.settings.AppLanguage
 import dev.orestegabo.sequovendor.feature.settings.AppThemePreference
 import dev.orestegabo.sequovendor.feature.settings.appText
+import dev.orestegabo.sequovendor.ui.store.storeAvailabilityLabel
 import dev.orestegabo.sequovendor.model.StoreAvailabilityState
 import dev.orestegabo.sequovendor.model.VendorSession
 import dev.orestegabo.sequovendor.model.VendorNegotiationStatus
@@ -157,6 +158,7 @@ internal fun AccountContent(
     onMessageNegotiation: (VendorNegotiationThread, String) -> Unit,
     onFinancialRecordsClick: () -> Unit,
     onLogout: () -> Unit,
+    storeChangesEnabled: Boolean = true,
     pendingAdminLoginRequestCount: Int = 0,
     onAdminLoginRequestsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -316,13 +318,13 @@ internal fun AccountContent(
                             Column {
                                 Text(appText(Res.string.account_availability), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Text(
-                                    if (availability.open) appText(Res.string.account_online) else appText(Res.string.account_offline),
+                                    storeAvailabilityLabel(availability),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
-                        Switch(checked = availability.open, onCheckedChange = onAvailabilityChange)
+                        Switch(checked = availability.open, onCheckedChange = onAvailabilityChange, enabled = storeChangesEnabled)
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     KeyValueRow(appText(Res.string.store_weekday), availability.weekdayHours)

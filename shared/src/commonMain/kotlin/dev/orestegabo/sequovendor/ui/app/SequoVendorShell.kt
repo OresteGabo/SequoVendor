@@ -90,7 +90,9 @@ import dev.orestegabo.sequovendor.core.notifications.NetworkVendorNotificationsR
 import dev.orestegabo.sequovendor.core.notifications.NotificationsApiClient
 import dev.orestegabo.sequovendor.core.notifications.VendorNotificationsRepository
 import dev.orestegabo.sequovendor.core.notifications.loadInboxSnapshot
-import dev.orestegabo.sequovendor.core.store.LocalVendorStoreRepository
+import dev.orestegabo.sequovendor.core.store.createVendorStoreRepository
+import dev.orestegabo.sequovendor.core.store.VendorStoreApiClient
+import dev.orestegabo.sequovendor.model.StoreAvailabilityState
 import dev.orestegabo.sequovendor.core.store.VendorStoreRepository
 import dev.orestegabo.sequovendor.feature.auth.AuthScreen
 import dev.orestegabo.sequovendor.feature.settings.AppLanguage
@@ -124,6 +126,10 @@ import dev.orestegabo.sequovendor.ui.orders.OrdersContent
 import dev.orestegabo.sequovendor.ui.store.StoreContent
 import kotlinx.coroutines.launch
 import sequovendor.shared.generated.resources.Res
+import sequovendor.shared.generated.resources.store_sync_loading
+import sequovendor.shared.generated.resources.store_sync_failed
+import sequovendor.shared.generated.resources.store_refresh
+import sequovendor.shared.generated.resources.store_retry_save
 import sequovendor.shared.generated.resources.app_name
 import sequovendor.shared.generated.resources.app_subtitle
 import sequovendor.shared.generated.resources.auth_error_account_other_method
@@ -223,8 +229,6 @@ internal fun SequoVendorShell(
     }
     var negotiations by remember(session?.userId, session?.merchantId, session?.localMode) { mutableStateOf(emptyList<VendorNegotiationThread>()) }
     var notificationPreference by remember(session?.userId, session?.merchantId, session?.localMode) { mutableStateOf(VendorNotificationPreference()) }
-    var store by remember { mutableStateOf(DemoVendorData.store()) }
-    var closureNote by remember { mutableStateOf("") }
     suspend fun clearSavedSessionForDifferentAccount() {
         merchantChoice = null
         if (rememberedUser != null || authRepository.getSavedSession() != null) {
@@ -424,6 +428,16 @@ internal fun SequoVendorShell(
     }
 
     val activeSession = requireNotNull(session)
+    fun unavailableStore() = StoreAvailabilityState(merchantId = activeSession.merchantId, open = false,
+        weekdayHours = "", weekendHours = "", configured = false, openStatus = "UNAVAILABLE")
+    var store by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
+        mutableStateOf(if (activeSession.localMode) DemoVendorData.store() else unavailableStore())
+    }
+    var closureNote by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf("") }
+    var storeBusy by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var storeFailure by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf<ApiFailure?>(null) }
+    var storePendingRetry by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    val storeChangesEnabled = !storeBusy && store.openStatus != "UNAVAILABLE"
     var dashboardOrders by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
         mutableStateOf(if (activeSession.localMode) localOrders else emptyList<MerchantSubOrder>())
     }
@@ -472,7 +486,37 @@ internal fun SequoVendorShell(
         ))
     }
     DisposableEffect(activityClient) { onDispose { activityClient?.close() } }
-    val storeRepository: VendorStoreRepository = remember { LocalVendorStoreRepository(store) }
+    val storeRepository: VendorStoreRepository = remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
+        createVendorStoreRepository(activeSession.localMode, store) {
+            VendorStoreApiClient(createSequoVendorHttpClient(
+                accessTokenProvider = { session?.takeIf { sameMerchantSession() }?.accessToken },
+                refreshAccessToken = {
+                    val restored = authRepository.restoreSavedSession()
+                    val token = authRepository.getSavedSession()?.accessToken
+                    if (sameMerchantSession() && restored?.id == activeSession.userId &&
+                        activeSession.merchantId in restored.authorizedMerchantIds() && !token.isNullOrBlank()) {
+                        session = session?.copy(accessToken = token); true
+                    } else false
+                },
+            ))
+        }
+    }
+    DisposableEffect(storeRepository) { onDispose { storeRepository.close() } }
+    suspend fun updateStore(block: suspend () -> ApiResult<StoreAvailabilityState>) {
+        if (storeBusy || !sameMerchantSession()) return
+        storeBusy = true; storeFailure = null
+        try {
+            val result = block()
+            if (!sameMerchantSession()) return
+            storePendingRetry = storeRepository.hasPending(activeSession.merchantId)
+            when (result) {
+                is ApiResult.Success -> { store = result.value; closureNote = result.value.closureReason ?: result.value.temporaryClosure?.reason.orEmpty() }
+                is ApiResult.Failure -> { store = unavailableStore(); storeFailure = result.error }
+            }
+        } finally { if (sameMerchantSession()) storeBusy = false }
+    }
+    LaunchedEffect(storeRepository) { updateStore { storeRepository.getAvailability(activeSession.merchantId) } }
+
     val negotiationRepository: VendorNegotiationRepository = remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) {
         if (activeSession.localMode) FakeVendorNegotiationRepository(localNegotiations)
         else NetworkVendorNegotiationRepository(
@@ -559,43 +603,19 @@ internal fun SequoVendorShell(
         }
     }
     val setStoreOpen: (Boolean) -> Unit = { open ->
-        scope.launch {
-            when (val result = storeRepository.setOpen(activeSession.merchantId, open, closureNote)) {
-                is ApiResult.Success -> store = result.value
-                is ApiResult.Failure -> Unit
-            }
-        }
+        if (storeChangesEnabled) scope.launch { updateStore { storeRepository.setOpen(activeSession.merchantId, open, closureNote) } }
     }
-
-    fun checkApiHealth() {
-        scope.launch {
-            apiHealthStatus = apiHealthClient.checkHealth()
-        }
+    fun checkApiHealth() { scope.launch { apiHealthStatus = apiHealthClient.checkHealth() } }
+    val setClosureReason: (String) -> Unit = { note -> closureNote = note }
+    val saveClosureReason: () -> Unit = {
+        val note = closureNote
+        if (storeChangesEnabled) scope.launch { updateStore { storeRepository.setTemporaryClosureReason(activeSession.merchantId, note) } }
     }
-    val setClosureReason: (String) -> Unit = { note ->
-        closureNote = note
-        scope.launch {
-            when (val result = storeRepository.setTemporaryClosureReason(activeSession.merchantId, note)) {
-                is ApiResult.Success -> store = result.value
-                is ApiResult.Failure -> Unit
-            }
-        }
-    }
-    val setOpeningHours: (List<OpeningHoursDay>) -> Unit = { openingHours ->
-        scope.launch {
-            when (val result = storeRepository.setOpeningHours(activeSession.merchantId, openingHours)) {
-                is ApiResult.Success -> store = result.value
-                is ApiResult.Failure -> Unit
-            }
-        }
+    val setOpeningHours: (List<OpeningHoursDay>) -> Unit = { hours ->
+        if (storeChangesEnabled) scope.launch { updateStore { storeRepository.setOpeningHours(activeSession.merchantId, hours) } }
     }
     val addTemporaryException: (OpeningHoursException) -> Unit = { exception ->
-        scope.launch {
-            when (val result = storeRepository.addTemporaryException(activeSession.merchantId, exception)) {
-                is ApiResult.Success -> store = result.value
-                is ApiResult.Failure -> Unit
-            }
-        }
+        if (storeChangesEnabled) scope.launch { updateStore { storeRepository.addTemporaryException(activeSession.merchantId, exception) } }
     }
 
     suspend fun refreshMerchantOrders(showLoading: Boolean = true) {
@@ -991,6 +1011,14 @@ internal fun SequoVendorShell(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (currentSection in listOf(VendorSection.Dashboard, VendorSection.Store, VendorSection.Account)) {
+                    if (storeBusy) Text(appText(Res.string.store_sync_loading))
+                    storeFailure?.let { Text(appText(Res.string.store_sync_failed), color = MaterialTheme.colorScheme.error) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(enabled = !storeBusy, onClick = { scope.launch { updateStore { storeRepository.getAvailability(activeSession.merchantId) } } }) { Text(appText(Res.string.store_refresh)) }
+                        if (storePendingRetry) TextButton(enabled = !storeBusy, onClick = { scope.launch { updateStore { storeRepository.retryPending(activeSession.merchantId) } } }) { Text(appText(Res.string.store_retry_save)) }
+                    }
+                }
                 Box(Modifier.fillMaxSize()) {
                     when (currentSection) {
                         VendorSection.Dashboard -> DashboardContent(
@@ -998,6 +1026,7 @@ internal fun SequoVendorShell(
                             orders = dashboardOrders,
                             products = products,
                             store = store,
+                            storeChangesEnabled = storeChangesEnabled,
                             connectionState = dashboardConnectionState,
                             activity = activitySnapshot,
                             activityLoading = activityLoading,
@@ -1060,6 +1089,8 @@ internal fun SequoVendorShell(
                             closureReason = closureNote,
                             onOpenChange = setStoreOpen,
                             onClosureReasonChange = setClosureReason,
+                            onSaveClosureReason = saveClosureReason,
+                            changesEnabled = storeChangesEnabled,
                             onOpeningHoursChange = setOpeningHours,
                             onAddTemporaryException = addTemporaryException,
                             modifier = Modifier.fillMaxSize(),
@@ -1083,6 +1114,7 @@ internal fun SequoVendorShell(
                         VendorSection.Account -> AccountContent(
                             session = activeSession,
                             availability = store,
+                            storeChangesEnabled = storeChangesEnabled,
                             language = language,
                             onLanguageChange = onLanguageChange,
                             themePreference = themePreference,

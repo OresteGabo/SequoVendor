@@ -20,6 +20,17 @@ fun appText(resource: StringResource, language: AppLanguage): String {
 }
 
 private val EnglishStrings = mapOf(
+    Res.string.store_sync_loading.key to "Reading or saving server store settings…",
+    Res.string.store_sync_failed.key to "Store settings could not be confirmed. Refresh the server state or retry the saved change.",
+    Res.string.store_refresh.key to "Refresh store",
+    Res.string.store_retry_save.key to "Retry saved change",
+    Res.string.store_not_configured.key to "No store policy is configured. Existing ordering remains available until configured.",
+    Res.string.store_status_unavailable.key to "Store status unavailable",
+    Res.string.store_setup_hours.key to "Enter weekly hours",
+    Res.string.store_save_hours.key to "Save weekly hours",
+    Res.string.store_hours_not_configured.key to "No weekly schedule. Manual availability applies. Enter actual hours before saving.",
+    Res.string.store_save_closure_note.key to "Save closure note",
+    Res.string.store_timezone_new.key to "New store settings use Africa/Lome (Togo).",
     Res.string.account_api_target.key to "API target",
     Res.string.account_build.key to "Build target",
     Res.string.account_release.key to "Release",
@@ -496,6 +507,17 @@ private val EnglishStrings = mapOf(
 )
 
 private val FrenchStrings = mapOf(
+    Res.string.store_sync_loading.key to "Lecture ou enregistrement des paramètres serveur…",
+    Res.string.store_sync_failed.key to "Les paramètres ne sont pas confirmés. Actualisez le serveur ou réessayez la modification enregistrée.",
+    Res.string.store_refresh.key to "Actualiser la boutique",
+    Res.string.store_retry_save.key to "Réessayer la modification",
+    Res.string.store_not_configured.key to "Aucune règle boutique n’est configurée. Les commandes existantes restent possibles avant configuration.",
+    Res.string.store_status_unavailable.key to "Statut boutique indisponible",
+    Res.string.store_setup_hours.key to "Saisir les horaires de la semaine",
+    Res.string.store_save_hours.key to "Enregistrer les horaires",
+    Res.string.store_hours_not_configured.key to "Aucun horaire hebdomadaire. La disponibilité manuelle s’applique. Saisissez les horaires réels avant d’enregistrer.",
+    Res.string.store_save_closure_note.key to "Enregistrer le motif de fermeture",
+    Res.string.store_timezone_new.key to "Les nouveaux paramètres utilisent Africa/Lome (Togo).",
     Res.string.account_api_target.key to "Cible API",
     Res.string.account_build.key to "Cible de compilation",
     Res.string.account_release.key to "Version",

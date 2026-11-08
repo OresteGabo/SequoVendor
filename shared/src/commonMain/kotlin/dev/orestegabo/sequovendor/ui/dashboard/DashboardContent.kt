@@ -30,6 +30,7 @@ import dev.orestegabo.sequovendor.core.network.ApiFailure
 import dev.orestegabo.sequovendor.model.CatalogProduct
 import dev.orestegabo.sequovendor.model.MerchantSubOrder
 import dev.orestegabo.sequovendor.model.MerchantSubOrderStatus
+import dev.orestegabo.sequovendor.ui.store.storeAvailabilityLabel
 import dev.orestegabo.sequovendor.model.StoreAvailabilityState
 import dev.orestegabo.sequovendor.model.VendorSession
 import dev.orestegabo.sequovendor.model.formatCfa
@@ -102,6 +103,7 @@ internal fun DashboardContent(
     onOrdersClick: () -> Unit,
     onCatalogClick: () -> Unit,
     onStoreClick: () -> Unit,
+    storeChangesEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val pending = orders.count { it.status == MerchantSubOrderStatus.MERCHANT_PENDING }
@@ -144,12 +146,13 @@ internal fun DashboardContent(
                         Text(appText(Res.string.dashboard_store_status), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     KeyValueRow(
-                        label = if (store.open) appText(Res.string.home_store_online) else appText(Res.string.home_store_offline),
+                        label = storeAvailabilityLabel(store),
                         value = store.openStatus ?: if (store.open) "OPEN" else "PAUSED",
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = { onStoreOpenChange(!store.open) },
+                            enabled = storeChangesEnabled,
                             modifier = Modifier.weight(1f),
                         ) {
                             Text(if (store.open) appText(Res.string.dashboard_close_store) else appText(Res.string.dashboard_open_store))
