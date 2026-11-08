@@ -4,9 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.pm.PackageManager
 import android.hardware.biometrics.BiometricPrompt
-import android.hardware.fingerprint.FingerprintManager
 import android.os.Build
 import android.os.CancellationSignal
 import androidx.compose.runtime.Composable
@@ -94,18 +92,10 @@ private class AndroidBiometricAuthenticator(
 
 @SuppressLint("MissingPermission")
 private fun Context.biometricAvailability(): BiometricAvailability {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+    // BiometricManager starts at API 29, one release after BiometricPrompt.
+    // Older devices retain normal sign-in; this optional cached-token helper is unavailable.
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
         return BiometricAvailability.NotSupported
-    }
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
-        val fingerprintManager = getSystemService(FingerprintManager::class.java)
-            ?: return BiometricAvailability.NoHardware
-        return when {
-            !packageManager.hasSystemFeature(PackageManager.FEATURE_FINGERPRINT) ||
-                !fingerprintManager.isHardwareDetected -> BiometricAvailability.NoHardware
-            !fingerprintManager.hasEnrolledFingerprints() -> BiometricAvailability.NoneEnrolled
-            else -> BiometricAvailability.NotSupported
-        }
     }
 
     val biometricManager = getSystemService(android.hardware.biometrics.BiometricManager::class.java)

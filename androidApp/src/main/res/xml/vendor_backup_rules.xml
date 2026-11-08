@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Keystore keys cannot transfer with these encrypted session files. -->
+    <exclude domain="sharedpref" path="sequo_auth_session.xml" />
+    <exclude domain="sharedpref" path="sequo_secure_tokens.xml" />
+    <!-- A restored installation must obtain its own device identity. -->
+    <exclude domain="sharedpref" path="sequo_auth_device.xml" />
+</full-backup-content>
