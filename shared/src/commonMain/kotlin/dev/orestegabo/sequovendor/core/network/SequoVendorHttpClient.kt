@@ -22,6 +22,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.StringResource
 import sequovendor.shared.generated.resources.Res
@@ -163,6 +164,8 @@ enum class ApiFailureKind(val userMessage: StringResource) {
 suspend inline fun <T> safeApiCall(crossinline block: suspend () -> T): ApiResult<T> =
     try {
         ApiResult.Success(block())
+    } catch (cancelled: CancellationException) {
+        throw cancelled
     } catch (error: Throwable) {
         ApiResult.Failure(error.toApiFailure())
     }

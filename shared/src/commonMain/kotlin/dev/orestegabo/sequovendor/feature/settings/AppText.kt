@@ -20,6 +20,9 @@ fun appText(resource: StringResource, language: AppLanguage): String {
 }
 
 private val EnglishStrings = mapOf(
+    Res.string.auth_local_test_accounts.key to "Local test merchant accounts",
+    Res.string.auth_local_test_detail.key to "Connect to the isolated SEQUO practice server with a real, revocable test session. No provider payment is enabled.",
+    Res.string.auth_local_test_cancel.key to "Cancel",
     Res.string.store_sync_loading.key to "Reading or saving server store settings…",
     Res.string.store_sync_failed.key to "Store settings could not be confirmed. Refresh the server state or retry the saved change.",
     Res.string.store_refresh.key to "Refresh store",
@@ -507,6 +510,9 @@ private val EnglishStrings = mapOf(
 )
 
 private val FrenchStrings = mapOf(
+    Res.string.auth_local_test_accounts.key to "Comptes commerçants de test local",
+    Res.string.auth_local_test_detail.key to "Connexion au serveur de recette isolé SEQUO avec une vraie session de test révocable. Aucun paiement fournisseur n’est activé.",
+    Res.string.auth_local_test_cancel.key to "Annuler",
     Res.string.store_sync_loading.key to "Lecture ou enregistrement des paramètres serveur…",
     Res.string.store_sync_failed.key to "Les paramètres ne sont pas confirmés. Actualisez le serveur ou réessayez la modification enregistrée.",
     Res.string.store_refresh.key to "Actualiser la boutique",

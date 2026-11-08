@@ -109,6 +109,8 @@ fun AuthScreen(
     onSequoLogin: () -> Unit = {},
     onSkipAuth: () -> Unit,
     onPrivacyTermsClick: () -> Unit,
+    onLocalTestAccountsClick: (() -> Unit)? = null,
+    localTestBusy: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -142,6 +144,8 @@ fun AuthScreen(
             onSequoLogin = onSequoLogin,
             onSkipAuth = onSkipAuth,
             onPrivacyTermsClick = onPrivacyTermsClick,
+            onLocalTestAccountsClick = onLocalTestAccountsClick,
+            localTestBusy = localTestBusy,
         )
     }
 }
@@ -161,6 +165,8 @@ private fun SocialAuthPage(
     onSequoLogin: () -> Unit,
     onSkipAuth: () -> Unit,
     onPrivacyTermsClick: () -> Unit,
+    onLocalTestAccountsClick: (() -> Unit)?,
+    localTestBusy: Boolean,
 ) {
     val colorScheme = MaterialTheme.colorScheme
 
@@ -168,6 +174,7 @@ private fun SocialAuthPage(
         modifier = Modifier
             .fillMaxSize()
             .safeContentPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
             .padding(top = 22.dp, bottom = 22.dp),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -209,6 +216,11 @@ private fun SocialAuthPage(
                 )
 
                 GuestBrowseLink(onClick = onSkipAuth)
+                onLocalTestAccountsClick?.let { open ->
+                    OutlinedButton(onClick = open, enabled = !localTestBusy && !googleSignInInProgress, modifier = Modifier.fillMaxWidth()) {
+                        Text(appText(Res.string.auth_local_test_accounts))
+                    }
+                }
 
                 TermsLine(onPrivacyTermsClick = onPrivacyTermsClick)
             }

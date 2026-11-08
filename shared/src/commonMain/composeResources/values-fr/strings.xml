@@ -484,4 +484,7 @@
     <string name="store_hours_not_configured">Aucun horaire hebdomadaire. La disponibilité manuelle s’applique. Saisissez les horaires réels avant d’enregistrer.</string>
     <string name="store_save_closure_note">Enregistrer le motif de fermeture</string>
     <string name="store_timezone_new">Les nouveaux paramètres utilisent Africa/Lome (Togo).</string>
+    <string name="auth_local_test_accounts">Comptes commerçants de test local</string>
+    <string name="auth_local_test_detail">Connexion au serveur de recette isolé SEQUO avec une vraie session de test révocable. Aucun paiement fournisseur n’est activé.</string>
+    <string name="auth_local_test_cancel">Annuler</string>
 </resources>

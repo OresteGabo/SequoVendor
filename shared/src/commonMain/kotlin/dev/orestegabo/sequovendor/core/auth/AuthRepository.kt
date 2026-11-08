@@ -1,40 +1,58 @@
 package dev.orestegabo.sequovendor.core.auth
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
 class AuthRepository(
     private val authApiClient: AuthApiClient,
     private val sessionStore: AuthSessionStore,
     private val secureSessionCache: SecureSessionCache,
 ) {
-    suspend fun loginWithGoogle(idToken: String): AuthSession {
+    private val sessionMutex = Mutex()
+
+    suspend fun loginWithGoogle(idToken: String): AuthSession = sessionMutex.withLock {
         if (idToken.isBlank()) {
             throw GoogleIdTokenMissingException()
         }
 
         val response = authApiClient.loginWithGoogle(idToken)
         saveSession(response.session)
-        return response.session
+        response.session
     }
 
-    suspend fun loginWithFacebook(accessToken: String): AuthSession {
+    suspend fun loginWithFacebook(accessToken: String): AuthSession = sessionMutex.withLock {
         if (accessToken.isBlank()) {
             throw FacebookAccessTokenMissingException()
         }
 
         val response = authApiClient.loginWithFacebook(accessToken)
         saveSession(response.session)
-        return response.session
+        response.session
     }
 
-    suspend fun signUpWithEmail(email: String, password: String, name: String?): AuthSession {
+    suspend fun signUpWithEmail(email: String, password: String, name: String?): AuthSession = sessionMutex.withLock {
         val response = authApiClient.signUpWithEmail(email = email, password = password, name = name)
         saveSession(response.session)
-        return response.session
+        response.session
     }
 
-    suspend fun loginWithEmail(email: String, password: String): AuthSession {
+    suspend fun loginWithEmail(email: String, password: String): AuthSession = sessionMutex.withLock {
         val response = authApiClient.loginWithEmail(email = email, password = password)
         saveSession(response.session)
-        return response.session
+        response.session
+    }
+
+    suspend fun localDevelopmentAccess(): LocalNativeAccess = authApiClient.localDevelopmentAccess()
+
+    suspend fun loginWithDevelopmentAccount(accountKey: String): CurrentUser = sessionMutex.withLock {
+        val response = authApiClient.developmentSession(accountKey)
+        val verified = authApiClient.currentUser(response.accessToken)
+        if (verified.id != response.user.id || verified.authorizedMerchantIds().isEmpty())
+            throw AuthApiException(403, AuthUserMessage.MerchantRoleRequired)
+        val session = AuthSession(response.accessToken, response.refreshToken, response.expiresIn)
+        saveSession(session)
+        sessionStore.saveRememberedUser(verified)
+        verified
     }
 
     suspend fun currentUser(): CurrentUser? {
@@ -42,10 +60,10 @@ class AuthRepository(
         return authApiClient.currentUser(session.accessToken)
     }
 
-    suspend fun restoreSavedSession(): CurrentUser? {
-        val session = sessionStore.get() ?: return null
+    suspend fun restoreSavedSession(): CurrentUser? = sessionMutex.withLock {
+        val session = sessionStore.get() ?: return@withLock null
 
-        return runCatching {
+        runCatching {
             authApiClient.currentUser(session.accessToken)
         }.getOrElse { firstError ->
             if ((firstError as? AuthApiException)?.statusCode != 401) throw firstError
@@ -79,7 +97,7 @@ class AuthRepository(
     suspend fun unlockCachedSession(promptConfig: BiometricPromptConfig = BiometricPromptConfig()): SecureSessionUnlockResult =
         secureSessionCache.unlockCachedSession(promptConfig)
 
-    suspend fun logout() {
+    suspend fun logout() = sessionMutex.withLock {
         sessionStore.get()?.let { session ->
             runCatching { authApiClient.logout(session.refreshToken) }
         }

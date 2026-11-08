@@ -484,4 +484,7 @@
     <string name="store_hours_not_configured">No weekly schedule. Manual availability applies. Enter actual hours before saving.</string>
     <string name="store_save_closure_note">Save closure note</string>
     <string name="store_timezone_new">New store settings use Africa/Lome (Togo).</string>
+    <string name="auth_local_test_accounts">Local test merchant accounts</string>
+    <string name="auth_local_test_detail">Connect to the isolated SEQUO practice server with a real, revocable test session. No provider payment is enabled.</string>
+    <string name="auth_local_test_cancel">Cancel</string>
 </resources>

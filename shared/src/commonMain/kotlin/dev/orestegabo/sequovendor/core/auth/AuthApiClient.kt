@@ -9,6 +9,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.parameter
 import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -21,8 +22,29 @@ import kotlinx.serialization.SerialName
 class AuthApiClient(
     private val baseUrl: String = NetworkConfig.BaseUrl,
     private val httpClient: HttpClient = createSequoVendorHttpClient(baseUrl),
+    private val environment: String = NetworkConfig.Environment,
     private val deviceIdProvider: () -> String,
 ) {
+    suspend fun localDevelopmentAccess(): LocalNativeAccess {
+        if (!localNativeAuthAllowed(environment, baseUrl)) return LocalNativeAccess(false)
+        val capability = httpClient.get(NetworkConfig.apiUrl("auth/development-access", baseUrl)) {
+            parameter("appSource", "SEQUO_VENDOR")
+        }.body<LocalNativeAccess>()
+        if (!capability.enabled || capability.mode != "LOCAL_FIXTURE") return LocalNativeAccess(false)
+        require(capability.accounts.isNotEmpty() && capability.accounts.size <= 2 &&
+            capability.accounts.map { it.key }.distinct().size == capability.accounts.size &&
+            capability.accounts.all { it.key in setOf("yawa", "mawuli") && it.label.isNotBlank() && it.label.length <= 120 })
+        return capability
+    }
+
+    internal suspend fun developmentSession(accountKey: String): LocalNativeSession {
+        val capability = localDevelopmentAccess()
+        require(capability.enabled && capability.accounts.any { it.key == accountKey }) { "Local test account is unavailable." }
+        return httpClient.post(NetworkConfig.apiUrl("auth/development-session", baseUrl)) {
+            setBody(LocalNativeSessionRequest(appSource = "SEQUO_VENDOR", accountKey = accountKey, deviceId = deviceIdProvider()))
+        }.body()
+    }
+
     suspend fun loginWithGoogle(idToken: String): AuthApiResponse {
         return loginWithSocialToken(SocialLoginProvider.Google, idToken)
     }
@@ -226,7 +248,7 @@ data class CurrentUser(
 }
 
 fun CurrentUser.authorizedMerchantIds(): Set<String> =
-    if (active && roles.any { it == "MERCHANT_OWNER" || it == "MERCHANT_STAFF" }) {
+    if (active && status.equals("ACTIVE", ignoreCase = true) && roles.any { it == "MERCHANT_OWNER" || it == "MERCHANT_STAFF" }) {
         merchantScopeIds.filter(String::isNotBlank).toSet()
     } else emptySet()
 
