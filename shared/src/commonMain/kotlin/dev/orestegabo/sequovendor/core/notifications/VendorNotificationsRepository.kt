@@ -17,6 +17,18 @@ interface VendorNotificationsRepository {
     suspend fun savePreference(preference: VendorNotificationPreference): ApiResult<VendorNotificationPreference>
 }
 
+internal data class VendorNotificationInboxSnapshot(
+    val notifications: List<VendorNotification>,
+    val isOffline: Boolean,
+)
+
+internal suspend fun VendorNotificationsRepository.loadInboxSnapshot(
+    includeArchived: Boolean = false,
+): VendorNotificationInboxSnapshot = when (val result = inbox(includeArchived)) {
+    is ApiResult.Success -> VendorNotificationInboxSnapshot(result.value, isOffline = false)
+    is ApiResult.Failure -> VendorNotificationInboxSnapshot(emptyList(), isOffline = true)
+}
+
 class NetworkVendorNotificationsRepository(
     private val apiClient: NotificationsApiClient,
 ) : VendorNotificationsRepository {

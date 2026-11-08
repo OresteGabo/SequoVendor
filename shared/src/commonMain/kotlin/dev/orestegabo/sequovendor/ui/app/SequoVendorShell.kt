@@ -89,6 +89,7 @@ import dev.orestegabo.sequovendor.core.notifications.FakeVendorNotificationsRepo
 import dev.orestegabo.sequovendor.core.notifications.NetworkVendorNotificationsRepository
 import dev.orestegabo.sequovendor.core.notifications.NotificationsApiClient
 import dev.orestegabo.sequovendor.core.notifications.VendorNotificationsRepository
+import dev.orestegabo.sequovendor.core.notifications.loadInboxSnapshot
 import dev.orestegabo.sequovendor.core.store.LocalVendorStoreRepository
 import dev.orestegabo.sequovendor.core.store.VendorStoreRepository
 import dev.orestegabo.sequovendor.feature.auth.AuthScreen
@@ -216,9 +217,11 @@ internal fun SequoVendorShell(
     val localNotifications = remember { DemoVendorData.notifications() }
     val localNegotiations = remember { DemoVendorData.negotiations() }
     var products by remember(session?.merchantId, session?.localMode) { mutableStateOf(emptyList<CatalogProduct>()) }
-    var notifications by remember { mutableStateOf(localNotifications) }
+    var notifications by remember(session?.userId, session?.merchantId, session?.localMode) {
+        mutableStateOf(if (session?.localMode == true) localNotifications else emptyList<VendorNotification>())
+    }
     var negotiations by remember(session?.userId, session?.merchantId, session?.localMode) { mutableStateOf(emptyList<VendorNegotiationThread>()) }
-    var notificationPreference by remember { mutableStateOf(VendorNotificationPreference()) }
+    var notificationPreference by remember(session?.userId, session?.merchantId, session?.localMode) { mutableStateOf(VendorNotificationPreference()) }
     var store by remember { mutableStateOf(DemoVendorData.store()) }
     var closureNote by remember { mutableStateOf("") }
     suspend fun clearSavedSessionForDifferentAccount() {
@@ -438,11 +441,11 @@ internal fun SequoVendorShell(
     var catalogSaveInProgress by remember { mutableStateOf(false) }
     var catalogSaveError by remember(activeSession.merchantId) { mutableStateOf<ApiFailure?>(null) }
     var lastCatalogSaveState by remember { mutableStateOf<CatalogDraftState?>(null) }
-    var notificationsLoading by remember { mutableStateOf(false) }
-    var notificationsOffline by remember { mutableStateOf(false) }
-    var notificationActionFailed by remember { mutableStateOf(false) }
-    var notificationPreferenceSaved by remember { mutableStateOf(false) }
-    var includeArchivedNotifications by remember { mutableStateOf(false) }
+    var notificationsLoading by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var notificationsOffline by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var notificationActionFailed by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var notificationPreferenceSaved by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
+    var includeArchivedNotifications by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(false) }
     var negotiationActionInProgressId by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf<String?>(null) }
     var negotiationFailure by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf<ApiFailure?>(null) }
     var negotiationsLoading by remember(activeSession.userId, activeSession.merchantId) { mutableStateOf(false) }
@@ -531,8 +534,8 @@ internal fun SequoVendorShell(
             )
         }
     }
-    val notificationsRepository: VendorNotificationsRepository = remember(activeSession.accessToken, activeSession.localMode) {
-        if (activeSession.localMode || activeSession.accessToken.isNullOrBlank()) {
+    val notificationsRepository: VendorNotificationsRepository = remember(activeSession.userId, activeSession.merchantId, activeSession.accessToken, activeSession.localMode) {
+        if (activeSession.localMode) {
             FakeVendorNotificationsRepository(localNotifications)
         } else {
             NetworkVendorNotificationsRepository(
@@ -632,23 +635,25 @@ internal fun SequoVendorShell(
     }
 
     suspend fun refreshNotifications(showLoading: Boolean = true) {
+        if (!sameMerchantSession()) return
+        val requestedIncludeArchived = includeArchivedNotifications
+        fun currentRequest() = sameMerchantSession() && requestedIncludeArchived == includeArchivedNotifications
         if (showLoading) notificationsLoading = true
         notificationActionFailed = false
-        when (val result = notificationsRepository.inbox(includeArchivedNotifications)) {
-            is ApiResult.Success -> {
-                notifications = result.value.ifEmpty { localNotifications }
-                notificationsOffline = false
+        try {
+            val snapshot = notificationsRepository.loadInboxSnapshot(requestedIncludeArchived)
+            if (!currentRequest()) return
+            notifications = snapshot.notifications
+            notificationsOffline = snapshot.isOffline
+            when (val preferenceResult = notificationsRepository.effectivePreference(VendorNotificationPreferenceEventType.ORDER_CREATED)) {
+                is ApiResult.Success -> if (currentRequest()) {
+                    notificationPreference = preferenceResult.value.copy(eventType = VendorNotificationPreferenceEventType.ALL)
+                }
+                is ApiResult.Failure -> Unit
             }
-            is ApiResult.Failure -> {
-                notifications = localNotifications
-                notificationsOffline = true
-            }
+        } finally {
+            if (currentRequest()) notificationsLoading = false
         }
-        when (val preferenceResult = notificationsRepository.effectivePreference(VendorNotificationPreferenceEventType.ORDER_CREATED)) {
-            is ApiResult.Success -> notificationPreference = preferenceResult.value.copy(eventType = VendorNotificationPreferenceEventType.ALL)
-            is ApiResult.Failure -> Unit
-        }
-        notificationsLoading = false
     }
 
     fun replaceNotification(updated: VendorNotification) {
@@ -660,9 +665,12 @@ internal fun SequoVendorShell(
         action: suspend (String) -> ApiResult<VendorNotification>,
     ) {
         scope.launch {
+            if (!sameMerchantSession()) return@launch
             notificationActionFailed = false
             notificationPreferenceSaved = false
-            when (val result = action(notification.id)) {
+            val result = action(notification.id)
+            if (!sameMerchantSession()) return@launch
+            when (result) {
                 is ApiResult.Success -> replaceNotification(result.value)
                 is ApiResult.Failure -> notificationActionFailed = true
             }
@@ -671,9 +679,12 @@ internal fun SequoVendorShell(
 
     fun saveNotificationPreference(preference: VendorNotificationPreference) {
         scope.launch {
+            if (!sameMerchantSession()) return@launch
             notificationActionFailed = false
             notificationPreferenceSaved = false
-            when (val result = notificationsRepository.savePreference(preference)) {
+            val result = notificationsRepository.savePreference(preference)
+            if (!sameMerchantSession()) return@launch
+            when (result) {
                 is ApiResult.Success -> {
                     notificationPreference = result.value
                     notificationPreferenceSaved = true
