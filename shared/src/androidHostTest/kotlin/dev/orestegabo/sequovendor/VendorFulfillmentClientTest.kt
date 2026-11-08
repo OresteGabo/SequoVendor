@@ -23,7 +23,7 @@ class VendorFulfillmentClientTest {
     private val baseUrl = "https://fulfillment.sequo.test"
     private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
     private val snapshot = """
-        {"id":"sub-1","subOrderCode":"SQ-1:merchant-1","orderId":"SQ-1","merchantId":"merchant-1",
+        {"id":"sub-1","publicReference":"MAB-CDE-FJZ","orderReference":"C12-345-6E6","subOrderCode":"SQ-1:merchant-1","orderId":"SQ-1","merchantId":"merchant-1",
          "status":"PREPARING","itemSubtotalCfa":6000,"commissionRateBps":1500,"commissionCfa":900,
          "merchantNetCfa":5100,"packageCount":0,"preparingAt":"2026-11-07T10:00:00Z",
          "packingDueAt":"2026-11-09T09:00:00Z","updatedAt":"2026-11-07T10:00:00Z",
@@ -47,6 +47,11 @@ class VendorFulfillmentClientTest {
         try {
             val order = client.listSubOrders("merchant-1").single()
             assertEquals(MerchantSubOrderStatus.PREPARING, order.status)
+            assertEquals("MAB-CDE-FJZ", order.displayReference)
+            assertEquals("C12-345-6E6", order.displayOrderReference)
+            assertEquals("sub-1", order.id)
+            assertEquals("SQ-1:merchant-1", order.subOrderCode)
+            assertEquals("SQ-legacy:merchant", MerchantSubOrder("legacy", "SQ-legacy:merchant").displayReference)
             assertEquals("2026-11-09T09:00:00Z", order.packingDueAt)
             assertEquals(3, order.lines.single().quantity)
             assertEquals("Plantain", order.lines.single().optionLabel)

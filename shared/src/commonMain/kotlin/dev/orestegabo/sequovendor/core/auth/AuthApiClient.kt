@@ -239,6 +239,7 @@ data class CurrentUser(
     val active: Boolean = true,
     val roles: Set<String> = emptySet(),
     val merchantScopeIds: Set<String> = emptySet(),
+    val publicReference: String? = null,
 ) {
     val displayName: String
         get() = backendDisplayName?.takeIf { it.isNotBlank() }

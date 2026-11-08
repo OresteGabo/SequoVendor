@@ -32,6 +32,8 @@ data class MerchantSubOrderDto(
     val orderPaymentStatus: String? = null,
     val orderCreatedAt: String? = null,
     val deliveredAt: String? = null,
+    val publicReference: String? = null,
+    val orderReference: String? = null,
 )
 
 @Serializable
@@ -87,6 +89,8 @@ fun MerchantSubOrderDto.toDomain(): MerchantSubOrder =
         orderPaymentStatus = orderPaymentStatus,
         orderCreatedAt = orderCreatedAt,
         deliveredAt = deliveredAt,
+        publicReference = publicReference,
+        orderReference = orderReference,
     )
 
 fun MerchantFulfillmentSlaDto.toDomain(): MerchantSlaInfo =

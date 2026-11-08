@@ -240,7 +240,7 @@ private fun DashboardSlaRow(
     order: MerchantSubOrder,
     dueAt: String?,
 ) {
-    KeyValueRow("$label ${order.subOrderCode}", dueAt.formatIsoTimestampOrDash())
+    KeyValueRow("$label ${order.displayReference}", dueAt.formatIsoTimestampOrDash())
 }
 
 @Composable
@@ -250,7 +250,7 @@ private fun DashboardOrderRow(order: MerchantSubOrder) {
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            VendorTitleStatusRow(order.subOrderCode, order.status.label())
+            VendorTitleStatusRow(order.displayReference, order.status.label())
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("${appText(Res.string.order_net)}: ${order.merchantNetCfa.formatCfa()}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("${appText(Res.string.order_packages)}: ${order.packageCount}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

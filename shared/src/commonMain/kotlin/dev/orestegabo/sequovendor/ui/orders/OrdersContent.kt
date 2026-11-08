@@ -255,7 +255,7 @@ private fun OrderCard(
 
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            VendorTitleStatusRow(order.subOrderCode, order.status.label())
+            VendorTitleStatusRow(order.displayReference, order.status.label())
             KeyValueRow(appText(Res.string.order_item_subtotal), order.itemSubtotalCfa.formatCfa())
             KeyValueRow(appText(Res.string.order_net), order.merchantNetCfa.formatCfa())
             if (order.commissionCfa > 0) {
@@ -376,7 +376,7 @@ private fun OrderDetailContent(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(appText(Res.string.order_detail_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(order.subOrderCode, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(order.displayReference, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 OutlinedButton(onClick = onBack, enabled = !actionInProgress) {
                     Text(appText(Res.string.order_detail_back))
@@ -431,8 +431,8 @@ private fun OrderDetailContent(
         item {
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VendorTitleStatusRow(order.subOrderCode, order.status.label())
-                    KeyValueRow(appText(Res.string.order_id), order.orderId ?: "-")
+                    VendorTitleStatusRow(order.displayReference, order.status.label())
+                    KeyValueRow(appText(Res.string.order_id), order.displayOrderReference ?: "-")
                     ActivityField(appText(Res.string.finance_order_state), merchantOrderState(order.orderStatus))
                     ActivityField(appText(Res.string.finance_customer_payment), customerPaymentState(order.orderPaymentStatus))
                     ActivityField(appText(Res.string.finance_created), order.orderCreatedAt.formatIsoTimestampOrDash())

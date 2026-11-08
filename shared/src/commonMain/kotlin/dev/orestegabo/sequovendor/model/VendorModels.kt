@@ -131,7 +131,15 @@ data class MerchantSubOrder(
     val orderPaymentStatus: String? = null,
     val orderCreatedAt: String? = null,
     val deliveredAt: String? = null,
+    val publicReference: String? = null,
+    val orderReference: String? = null,
 ) {
+    val displayReference: String
+        get() = publicReference?.takeIf(String::isNotBlank) ?: subOrderCode
+
+    val displayOrderReference: String?
+        get() = orderReference?.takeIf(String::isNotBlank) ?: orderId
+
     val code: String
         get() = subOrderCode
 

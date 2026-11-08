@@ -63,6 +63,8 @@ data class MerchantReturnSnapshot(
     val refundPaymentStatus: String? = null,
     val orderPaymentStatus: String? = null,
     val lines: List<MerchantReturnLine> = emptyList(),
+    val publicReference: String? = null,
+    val orderReference: String? = null,
 )
 
 @Serializable
@@ -84,6 +86,9 @@ data class MerchantPayoutSnapshot(
     val workflowType: String? = null,
     val activeReturnHold: Boolean = false,
     val activeDisputeHold: Boolean = false,
+    val publicReference: String? = null,
+    val orderReference: String? = null,
+    val sourceOrderItemReference: String? = null,
 ) {
     val recordedStage: MerchantSettlementStage
         get() = when (status) {

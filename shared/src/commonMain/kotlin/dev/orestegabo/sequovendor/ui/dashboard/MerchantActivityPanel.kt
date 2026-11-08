@@ -62,8 +62,8 @@ internal fun MerchantActivityPanel(
             0 -> {
                 if (actual.orders.isEmpty()) Text(appText(Res.string.finance_empty_sales))
                 actual.orders.forEach { order ->
-                    ActivityRecord("${order.subOrderCode} · ${order.status.label()}") {
-                        ActivityField(appText(Res.string.order_id), order.orderId ?: unknown())
+                    ActivityRecord("${order.displayReference} · ${order.status.label()}") {
+                        ActivityField(appText(Res.string.order_id), order.displayOrderReference ?: unknown())
                         ActivityField(appText(Res.string.finance_order_state), merchantOrderState(order.orderStatus))
                         ActivityField(appText(Res.string.finance_customer_payment), customerPaymentState(order.orderPaymentStatus))
                         ActivityField(appText(Res.string.finance_created), order.orderCreatedAt.formatIsoTimestampOrDash())
@@ -78,8 +78,8 @@ internal fun MerchantActivityPanel(
             1 -> {
                 if (actual.returns.isEmpty()) Text(appText(Res.string.finance_empty_returns))
                 actual.returns.forEach { item ->
-                    ActivityRecord(item.id) {
-                        ActivityField(appText(Res.string.order_id), item.orderId)
+                    ActivityRecord(item.publicReference?.takeIf(String::isNotBlank) ?: item.id) {
+                        ActivityField(appText(Res.string.order_id), item.orderReference?.takeIf(String::isNotBlank) ?: item.orderId)
                         ActivityField(appText(Res.string.account_status), returnState(item.status))
                         item.lines.forEach { Text("${it.quantity} × ${it.productName}") }
                         ActivityField(appText(Res.string.finance_return_requested_at), item.requestedAt.formatIsoTimestampOrDash())
@@ -110,9 +110,9 @@ internal fun MerchantActivityPanel(
                 Text(appText(Res.string.finance_no_transfer_confirmation), style = MaterialTheme.typography.bodySmall)
                 if (actual.payouts.isEmpty()) Text(appText(Res.string.finance_empty_payouts))
                 actual.payouts.forEach { payout ->
-                    ActivityRecord(payout.id) {
-                        ActivityField(appText(Res.string.order_id), payout.orderId)
-                        ActivityField(appText(Res.string.finance_source_line), payout.sourceOrderItemId)
+                    ActivityRecord(payout.publicReference?.takeIf(String::isNotBlank) ?: payout.id) {
+                        ActivityField(appText(Res.string.order_id), payout.orderReference?.takeIf(String::isNotBlank) ?: payout.orderId)
+                        ActivityField(appText(Res.string.finance_source_line), payout.sourceOrderItemReference?.takeIf(String::isNotBlank) ?: payout.sourceOrderItemId)
                         ActivityField(appText(Res.string.account_status), payoutState(payout))
                         ActivityField(appText(Res.string.finance_payout_net), payout.merchantNetCfa.formatCfa())
                         ActivityField(appText(Res.string.order_commission), payout.commissionCfa.formatCfa())

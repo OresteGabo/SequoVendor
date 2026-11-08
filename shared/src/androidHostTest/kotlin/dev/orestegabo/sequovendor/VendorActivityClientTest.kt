@@ -33,14 +33,14 @@ class VendorActivityClientTest {
          "lines":[{"id":"line-A","productId":"bag","productName":"Fixture bag","quantity":2,"unitPriceCfa":1000,"lineTotalCfa":2000}]}
     """.trimIndent()
     private val returnRecord = """
-        {"id":"return-1","orderId":"SQ-1","status":"RefundPending","requestedAt":"2026-11-08T11:00:00Z",
+        {"id":"return-1","publicReference":"R98-765-4Q4","orderReference":"C12-345-6E6","orderId":"SQ-1","status":"RefundPending","requestedAt":"2026-11-08T11:00:00Z",
          "droppedAt":"2026-11-08T12:00:00Z","collectedBySequoAt":"2026-11-08T13:00:00Z",
          "receivedBySequoAt":"2026-11-08T14:00:00Z","inspectionDecision":"ACCEPTED",
          "refundInstructionState":"REQUESTED","refundPaymentStatus":"NOT_SUBMITTED","orderPaymentStatus":"Validated",
          "lines":[{"productId":"bag","productName":"Fixture bag","quantity":2}]}
     """.trimIndent()
     private fun payout(status: String) = """
-        {"id":"payout-$status","merchantId":"merchant-A","orderId":"SQ-1","sourceOrderItemId":"line-A",
+        {"id":"payout-$status","publicReference":"F00-000-09J","sourceOrderItemReference":"J00-11Z-ZHV","orderReference":"C12-345-6E6","merchantId":"merchant-A","orderId":"SQ-1","sourceOrderItemId":"line-A",
          "merchantNetCfa":1700,"commissionCfa":300,"platformMarginCfa":0,
          "packageReceivedAt":"2026-11-08T10:00:00Z","payoutEligibleAt":"2026-11-11T10:00:00Z",
          "payoutDueBy":"2026-11-15T10:00:00Z","status":"$status","workflowType":"DeliveryConfirmed",
@@ -68,6 +68,11 @@ class VendorActivityClientTest {
             val data = assertIs<ApiResult.Success<MerchantActivitySnapshot>>(client.load("merchant-A")).value
             assertEquals(listOf("/api/merchant/sub-orders", "/api/returns/merchant", "/api/settlements/merchant-payouts"), paths)
             assertEquals("DELIVERED", data.orders.single().orderStatus)
+            assertEquals("R98-765-4Q4", data.returns.single().publicReference)
+            assertEquals("C12-345-6E6", data.returns.single().orderReference)
+            assertEquals("F00-000-09J", data.payouts.first().publicReference)
+            assertEquals("J00-11Z-ZHV", data.payouts.first().sourceOrderItemReference)
+            assertEquals("line-A", data.payouts.first().sourceOrderItemId)
             assertEquals("Validated", data.orders.single().orderPaymentStatus)
             assertEquals("2026-11-01T10:00:00Z", data.orders.single().orderCreatedAt)
             assertEquals(2, data.orders.single().lines.single().quantity)
