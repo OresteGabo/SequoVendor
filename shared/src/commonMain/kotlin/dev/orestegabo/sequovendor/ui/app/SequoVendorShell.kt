@@ -39,6 +39,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import dev.orestegabo.sequovendor.core.orders.IncomingOrderPresentation
+import dev.orestegabo.sequovendor.core.orders.VendorIncomingOrderCoordinator
+import dev.orestegabo.sequovendor.core.orders.rememberVendorIncomingOrderAlert
+import dev.orestegabo.sequovendor.core.orders.rememberVendorIncomingOrderReceiptStore
+import dev.orestegabo.sequovendor.core.network.NetworkConfig
+import dev.orestegabo.sequovendor.ui.orders.IncomingOrderDialog
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlin.time.TimeSource
+import sequovendor.shared.generated.resources.incoming_order_refusal_reason
+import sequovendor.shared.generated.resources.incoming_order_storage_unavailable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -533,6 +547,44 @@ internal fun SequoVendorShell(
     var activityFailure by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf<ApiFailure?>(null) }
     var activityRefresh by remember(activeSession.userId, activeSession.merchantId, activeSession.localMode) { mutableStateOf(0) }
     fun sameMerchantSession(): Boolean = session?.workspaceKey() == workspaceKey
+    var orderReadGeneration by remember(workspaceKey) { mutableStateOf(0) }
+    var notificationPreferencesVerified by remember(workspaceKey) { mutableStateOf(false) }
+    val incomingRinger = rememberVendorIncomingOrderAlert()
+    val incomingReceipts = rememberVendorIncomingOrderReceiptStore()
+    val incomingClock = remember(workspaceKey) { TimeSource.Monotonic.markNow() }
+    val incomingOrders = remember(workspaceKey, incomingReceipts) {
+        VendorIncomingOrderCoordinator(activeSession.merchantId,
+            "${NetworkConfig.BaseUrl}|${workspaceKey.userId}|${workspaceKey.merchantId}", incomingReceipts,
+            monotonicNowMillis = { incomingClock.elapsedNow().inWholeMilliseconds })
+    }
+    var incomingPresentation by remember(workspaceKey) { mutableStateOf<IncomingOrderPresentation?>(null) }
+    var incomingReceiptIssue by remember(workspaceKey) { mutableStateOf(false) }
+    var waitingOrderCount by remember(workspaceKey) { mutableStateOf(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var workspaceResumed by remember(lifecycleOwner, workspaceKey) {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+    DisposableEffect(lifecycleOwner, workspaceKey, incomingRinger) {
+        val observer = LifecycleEventObserver { _, _ ->
+            workspaceResumed = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            if (!workspaceResumed) {
+                incomingRinger.stop()
+                incomingOrders.invalidate()
+                incomingPresentation = null
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            incomingRinger.stop()
+            incomingOrders.invalidate()
+        }
+    }
+    fun silenceIncoming(orderId: String) {
+        incomingOrders.silence(orderId)
+        incomingRinger.stop()
+        incomingPresentation = null
+    }
     val workspaceClient = remember(workspaceKey) {
         if (activeSession.localMode) null else createVendorWorkspaceClient(
             expected = workspaceKey,
@@ -599,17 +651,24 @@ internal fun SequoVendorShell(
     }
 
     suspend fun refreshMerchantOrders(showLoading: Boolean = true) {
+        if (!sameMerchantSession() || orderActionInProgressId != null) return
+        val requestGeneration = ++orderReadGeneration
         if (showLoading) ordersLoading = true
-        if (!activeSession.localMode) dashboardOrders = emptyList()
+        if (showLoading && !activeSession.localMode) dashboardOrders = emptyList()
         try {
+            val readStarted = TimeSource.Monotonic.markNow()
             val result = fulfillmentRepository.listSubOrders(activeSession.merchantId)
-            if (!sameMerchantSession()) return
+            if (!sameMerchantSession() || requestGeneration != orderReadGeneration || !workspaceResumed) return
             when (result) {
                 is ApiResult.Success -> {
                     dashboardOrders = result.value
+                    if (!activeSession.localMode) incomingOrders.update(result.value, readStarted.elapsedNow().inWholeMilliseconds)
                     dashboardConnectionState = if (activeSession.localMode) DashboardConnectionState.LocalFallback else DashboardConnectionState.Connected
                 }
                 is ApiResult.Failure -> {
+                    incomingOrders.invalidate()
+                    incomingRinger.stop()
+                    incomingPresentation = null
                     dashboardOrders = emptyList()
                     detailOrder = null
                     detailSla = null
@@ -647,8 +706,9 @@ internal fun SequoVendorShell(
             when (val preferenceResult = notificationsRepository.effectivePreference(VendorNotificationPreferenceEventType.ORDER_CREATED)) {
                 is ApiResult.Success -> if (currentRequest()) {
                     notificationPreference = preferenceResult.value.copy(eventType = VendorNotificationPreferenceEventType.ALL)
+                    notificationPreferencesVerified = true
                 }
-                is ApiResult.Failure -> Unit
+                is ApiResult.Failure -> { notificationPreferencesVerified = false }
             }
         } finally {
             if (currentRequest()) notificationsLoading = false
@@ -832,6 +892,9 @@ internal fun SequoVendorShell(
                 }
             }
             is ApiResult.Failure -> {
+                incomingOrders.invalidate()
+                incomingRinger.stop()
+                incomingPresentation = null
                 detailOffline = true
                 detailOrder = null
                 detailSla = null
@@ -849,13 +912,15 @@ internal fun SequoVendorShell(
         action: VendorOrderAction,
         reason: String?,
     ) {
-        if (orderActionInProgressId != null) return
+        if (orderActionInProgressId != null || !sameMerchantSession()) return
         if (!activeSession.localMode &&
             (dashboardConnectionState == DashboardConnectionState.ErrorFallback || detailOffline)
         ) {
             orderActionFailed = true
             return
         }
+        orderReadGeneration++ // A pre-action queue response cannot overwrite its canonical result.
+        if (action == VendorOrderAction.Accept || action == VendorOrderAction.Reject) silenceIncoming(order.id)
         orderActionInProgressId = order.id
         scope.launch {
             try {
@@ -881,6 +946,9 @@ internal fun SequoVendorShell(
                         activitySnapshot = null
                         activityRefresh++
                         replaceMerchantOrder(result.value)
+                        if (action == VendorOrderAction.Accept || action == VendorOrderAction.Reject) {
+                            incomingOrders.onHandled(result.value.id)
+                        }
                         if (detailOrder?.id == result.value.id) {
                             detailOrder = result.value
                             loadOrderDetail(result.value.id, fallback = result.value, showLoading = false)
@@ -892,6 +960,9 @@ internal fun SequoVendorShell(
                         }
                     }
                     is ApiResult.Failure -> {
+                        incomingOrders.invalidate()
+                        incomingRinger.stop()
+                        incomingPresentation = null
                         orderActionFailed = true
                         dashboardOrders = emptyList()
                         detailOrder = null
@@ -921,8 +992,49 @@ internal fun SequoVendorShell(
         } finally { if (sameMerchantSession()) activityLoading = false }
     }
 
-    LaunchedEffect(fulfillmentRepository, activeSession.merchantId) {
-        refreshMerchantOrders(showLoading = true)
+    LaunchedEffect(fulfillmentRepository, workspaceKey, workspaceResumed) {
+        if (!workspaceResumed) {
+            incomingOrders.invalidate()
+            incomingPresentation = null
+            incomingRinger.stop()
+            return@LaunchedEffect
+        }
+        try {
+            refreshMerchantOrders(showLoading = true)
+            if (!activeSession.localMode) while (isActive) {
+                delay(5_000)
+                refreshMerchantOrders(showLoading = false)
+            }
+        } finally {
+            incomingOrders.invalidate()
+            incomingPresentation = null
+            incomingRinger.stop()
+        }
+    }
+
+    LaunchedEffect(workspaceKey, workspaceResumed, incomingOrders) {
+        try {
+            if (workspaceResumed && !activeSession.localMode) while (isActive) {
+                incomingPresentation = if (notificationPreferencesVerified && notificationPreference.inAppEnabled &&
+                    !notificationsOffline && dashboardConnectionState == DashboardConnectionState.Connected &&
+                    orderActionInProgressId == null) incomingOrders.current() else null
+                incomingReceiptIssue = !incomingOrders.receiptStorageAvailable
+                waitingOrderCount = incomingOrders.waitingCount()
+                delay(250)
+            }
+        } finally {
+            incomingPresentation = null
+            incomingRinger.stop()
+        }
+    }
+
+    val incomingSoundEnabled = workspaceResumed && notificationPreferencesVerified &&
+        notificationPreference.inAppEnabled && notificationPreference.pushEnabled && !notificationsOffline
+    LaunchedEffect(incomingPresentation?.order?.id, incomingSoundEnabled, workspaceResumed) {
+        val incoming = incomingPresentation
+        if (incoming != null && incomingSoundEnabled) {
+            incomingRinger.start(incoming.order.id, incoming.remainingRingMillis)
+        } else incomingRinger.stop()
     }
 
     LaunchedEffect(catalogRepository, activeSession.merchantId) {
@@ -1029,6 +1141,7 @@ internal fun SequoVendorShell(
                             isOffline = dashboardConnectionState == DashboardConnectionState.ErrorFallback,
                             actionInProgressOrderId = orderActionInProgressId,
                             actionFailed = orderActionFailed,
+                            waitingOrderCount = waitingOrderCount,
                             detailOrder = detailOrder,
                             detailSla = detailSla,
                             detailLoading = detailLoading,
@@ -1131,6 +1244,32 @@ internal fun SequoVendorShell(
                 }
             }
         }
+    }
+    if (incomingReceiptIssue) {
+        Box(Modifier.fillMaxSize().safeContentPadding(), contentAlignment = Alignment.TopCenter) {
+            Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                Text(appText(Res.string.incoming_order_storage_unavailable), Modifier.padding(12.dp))
+            }
+        }
+    }
+    val refusalReason = appText(Res.string.incoming_order_refusal_reason)
+    incomingPresentation?.let { incoming ->
+        IncomingOrderDialog(incoming,
+            onSilence = { silenceIncoming(incoming.order.id) },
+            onAccept = {
+                currentSection = VendorSection.Orders
+                detailOrder = incoming.order
+                detailSla = incoming.order.sla
+                detailOffline = false // This incoming action uses the fresh authorized queue, not a previous detail failure.
+                handleOrderAction(incoming.order, VendorOrderAction.Accept, null)
+            },
+            onRefuse = {
+                currentSection = VendorSection.Orders
+                detailOrder = incoming.order
+                detailSla = incoming.order.sla
+                detailOffline = false // This incoming action uses the fresh authorized queue, not a previous detail failure.
+                handleOrderAction(incoming.order, VendorOrderAction.Reject, refusalReason)
+            })
     }
     // The open drawer closes before a child editor or the selected tab.
     VendorBackHandler(enabled = drawerState.isOpen) {

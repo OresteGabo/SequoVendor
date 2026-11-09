@@ -497,4 +497,19 @@
     <string name="store_state_outside">Hors horaires</string>
     <string name="store_state_inactive">Marchand inactif</string>
     <string name="account_status_active">Actif</string>
+    <string name="incoming_order_title">Nouvelle commande payée</string>
+    <string name="incoming_order_attention">Votre confirmation est attendue</string>
+    <string name="incoming_order_ring_countdown">La sonnerie s’arrête dans {seconds}s</string>
+    <string name="incoming_order_response_countdown">Confirmez dans {time}</string>
+    <string name="incoming_order_accept">Accepter la commande</string>
+    <string name="incoming_order_refuse">Refuser la commande</string>
+    <string name="incoming_order_silence">Laisser en attente</string>
+    <string name="incoming_order_refusal_reason">Le commerçant a refusé la nouvelle commande</string>
+    <string name="incoming_order_waiting">En attente de votre réponse</string>
+    <string name="incoming_order_waiting_notice">La sonnerie est arrêtée. Vous pouvez encore accepter les commandes en attente avant leur échéance.</string>
+    <string name="incoming_order_timeout">Annulée : délai de confirmation dépassé</string>
+    <string name="incoming_order_review">Examen SEQUO nécessaire</string>
+    <string name="incoming_order_no_lines">Ouvrez le détail pour consulter les articles.</string>
+    <string name="incoming_order_deadline_notice">Les commandes non confirmées sont annulées à l’échéance affichée.</string>
+    <string name="incoming_order_storage_unavailable">Les alertes sont en pause. Ouvrez Commandes pour répondre.</string>
 </resources>

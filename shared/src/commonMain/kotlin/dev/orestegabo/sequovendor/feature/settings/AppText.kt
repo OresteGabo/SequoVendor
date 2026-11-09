@@ -20,6 +20,21 @@ fun appText(resource: StringResource, language: AppLanguage): String {
 }
 
 private val EnglishStrings = mapOf(
+    Res.string.incoming_order_title.key to "New paid order",
+    Res.string.incoming_order_attention.key to "Your confirmation is needed",
+    Res.string.incoming_order_ring_countdown.key to "Ringing stops in {seconds}s",
+    Res.string.incoming_order_response_countdown.key to "Confirm within {time}",
+    Res.string.incoming_order_accept.key to "Accept order",
+    Res.string.incoming_order_refuse.key to "Refuse order",
+    Res.string.incoming_order_silence.key to "Keep waiting",
+    Res.string.incoming_order_refusal_reason.key to "Merchant declined the incoming order",
+    Res.string.incoming_order_waiting.key to "Waiting for your response",
+    Res.string.incoming_order_waiting_notice.key to "Ringing has stopped. You can still accept waiting orders before their deadline.",
+    Res.string.incoming_order_timeout.key to "Cancelled: confirmation time expired",
+    Res.string.incoming_order_review.key to "SEQUO review required",
+    Res.string.incoming_order_no_lines.key to "Open order details to review items.",
+    Res.string.incoming_order_deadline_notice.key to "Unconfirmed orders are cancelled when the displayed deadline is reached.",
+    Res.string.incoming_order_storage_unavailable.key to "Incoming alerts are paused. Open Orders to respond.",
     Res.string.account_status_active.key to "Active",
     Res.string.store_state_setup.key to "Setup needed",
     Res.string.store_state_unavailable.key to "Unavailable",
@@ -520,6 +535,21 @@ private val EnglishStrings = mapOf(
 )
 
 private val FrenchStrings = mapOf(
+    Res.string.incoming_order_title.key to "Nouvelle commande payée",
+    Res.string.incoming_order_attention.key to "Votre confirmation est attendue",
+    Res.string.incoming_order_ring_countdown.key to "La sonnerie s’arrête dans {seconds}s",
+    Res.string.incoming_order_response_countdown.key to "Confirmez dans {time}",
+    Res.string.incoming_order_accept.key to "Accepter la commande",
+    Res.string.incoming_order_refuse.key to "Refuser la commande",
+    Res.string.incoming_order_silence.key to "Laisser en attente",
+    Res.string.incoming_order_refusal_reason.key to "Le commerçant a refusé la nouvelle commande",
+    Res.string.incoming_order_waiting.key to "En attente de votre réponse",
+    Res.string.incoming_order_waiting_notice.key to "La sonnerie est arrêtée. Vous pouvez encore accepter les commandes en attente avant leur échéance.",
+    Res.string.incoming_order_timeout.key to "Annulée : délai de confirmation dépassé",
+    Res.string.incoming_order_review.key to "Examen SEQUO nécessaire",
+    Res.string.incoming_order_no_lines.key to "Ouvrez le détail pour consulter les articles.",
+    Res.string.incoming_order_deadline_notice.key to "Les commandes non confirmées sont annulées à l’échéance affichée.",
+    Res.string.incoming_order_storage_unavailable.key to "Les alertes sont en pause. Ouvrez Commandes pour répondre.",
     Res.string.account_status_active.key to "Actif",
     Res.string.store_state_setup.key to "À configurer",
     Res.string.store_state_unavailable.key to "Indisponible",

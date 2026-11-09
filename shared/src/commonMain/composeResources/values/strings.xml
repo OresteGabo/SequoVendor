@@ -497,4 +497,19 @@
     <string name="store_state_outside">Outside hours</string>
     <string name="store_state_inactive">Merchant inactive</string>
     <string name="account_status_active">Active</string>
+    <string name="incoming_order_title">New paid order</string>
+    <string name="incoming_order_attention">Your confirmation is needed</string>
+    <string name="incoming_order_ring_countdown">Ringing stops in {seconds}s</string>
+    <string name="incoming_order_response_countdown">Confirm within {time}</string>
+    <string name="incoming_order_accept">Accept order</string>
+    <string name="incoming_order_refuse">Refuse order</string>
+    <string name="incoming_order_silence">Keep waiting</string>
+    <string name="incoming_order_refusal_reason">Merchant declined the incoming order</string>
+    <string name="incoming_order_waiting">Waiting for your response</string>
+    <string name="incoming_order_waiting_notice">Ringing has stopped. You can still accept waiting orders before their deadline.</string>
+    <string name="incoming_order_timeout">Cancelled: confirmation time expired</string>
+    <string name="incoming_order_review">SEQUO review required</string>
+    <string name="incoming_order_no_lines">Open order details to review items.</string>
+    <string name="incoming_order_deadline_notice">Unconfirmed orders are cancelled when the displayed deadline is reached.</string>
+    <string name="incoming_order_storage_unavailable">Incoming alerts are paused. Open Orders to respond.</string>
 </resources>

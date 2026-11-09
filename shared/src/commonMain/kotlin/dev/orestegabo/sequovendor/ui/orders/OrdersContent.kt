@@ -20,6 +20,11 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlin.time.Instant
+import sequovendor.shared.generated.resources.incoming_order_waiting
+import sequovendor.shared.generated.resources.incoming_order_waiting_notice
+import sequovendor.shared.generated.resources.incoming_order_timeout
+import sequovendor.shared.generated.resources.incoming_order_review
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -120,6 +125,7 @@ internal fun OrdersContent(
     isOffline: Boolean,
     actionInProgressOrderId: String?,
     actionFailed: Boolean,
+    waitingOrderCount: Int = 0,
     detailOrder: MerchantSubOrder?,
     detailSla: MerchantSlaInfo?,
     detailLoading: Boolean,
@@ -160,6 +166,10 @@ internal fun OrdersContent(
     }
 
     LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
+        if (waitingOrderCount > 0 && !isOffline) item {
+            Text(appText(Res.string.incoming_order_waiting_notice), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -255,7 +265,7 @@ private fun OrderCard(
 
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            VendorTitleStatusRow(order.displayReference, order.status.label())
+            VendorTitleStatusRow(order.displayReference, order.responseStatusLabel())
             KeyValueRow(appText(Res.string.order_item_subtotal), order.itemSubtotalCfa.formatCfa())
             KeyValueRow(appText(Res.string.order_net), order.merchantNetCfa.formatCfa())
             if (order.commissionCfa > 0) {
@@ -431,7 +441,7 @@ private fun OrderDetailContent(
         item {
             VendorCard {
                 Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VendorTitleStatusRow(order.displayReference, order.status.label())
+                    VendorTitleStatusRow(order.displayReference, order.responseStatusLabel())
                     KeyValueRow(appText(Res.string.order_id), order.displayOrderReference ?: "-")
                     ActivityField(appText(Res.string.finance_order_state), merchantOrderState(order.orderStatus))
                     ActivityField(appText(Res.string.finance_customer_payment), customerPaymentState(order.orderPaymentStatus))
@@ -710,3 +720,15 @@ private fun VendorOrderHandoffMethod?.label(fallback: String?): String =
         VendorOrderHandoffMethod.RELAY_POINT -> appText(Res.string.orders_handoff_relay)
         null -> fallback?.takeIf { it.isNotBlank() } ?: "-"
     }
+
+@Composable
+private fun MerchantSubOrder.responseStatusLabel(): String {
+    if ((responseDisposition ?: responseExpiryDisposition) == "OPERATIONS_REVIEW_REQUIRED")
+        return appText(Res.string.incoming_order_review)
+    if (responseState == "EXPIRED") return appText(Res.string.incoming_order_timeout)
+    val observed = serverNow?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    val until = alertUntilAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    return if (status == MerchantSubOrderStatus.MERCHANT_PENDING && responseState == "PENDING" &&
+        observed != null && until != null && observed >= until) appText(Res.string.incoming_order_waiting)
+    else status.label()
+}
