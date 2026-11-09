@@ -133,6 +133,13 @@ data class MerchantSubOrder(
     val deliveredAt: String? = null,
     val publicReference: String? = null,
     val orderReference: String? = null,
+    val alertUntilAt: String? = null,
+    val responseDeadlineAt: String? = null,
+    val responseExpiredAt: String? = null,
+    val responseState: String = "LEGACY_UNTIMED",
+    val responseExpiryDisposition: String? = null,
+    val responseDisposition: String? = null,
+    val serverNow: String? = null,
 ) {
     val displayReference: String
         get() = publicReference?.takeIf(String::isNotBlank) ?: subOrderCode
