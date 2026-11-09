@@ -14,8 +14,19 @@ class VendorIncomingOrderAlertTest {
         fixture.alert.start("paid-order", 90_000)
         assertEquals(1, fixture.starts)
         fixture.advanceTo(30_000)
-        fixture.alert.start("paid-order", 45_000)
+        fixture.alert.start("paid-order", 60_000)
         assertEquals(1, fixture.starts)
+        fixture.advanceTo(59_999)
+        assertTrue(fixture.playing)
+        fixture.advanceTo(60_000)
+        assertFalse(fixture.playing)
+        fixture.advanceTo(60_001)
+        assertFalse(fixture.playing)
+    }
+
+    @Test fun oldFortyFiveSecondServerSnapshotKeepsItsOriginalStopTime() {
+        val fixture = AlertFixture()
+        fixture.alert.start("old-policy-order", 45_000)
         fixture.advanceTo(44_999)
         assertTrue(fixture.playing)
         fixture.advanceTo(45_000)
@@ -24,7 +35,7 @@ class VendorIncomingOrderAlertTest {
 
     @Test fun updatedServerDeadlineCanShortenAnActiveAlert() {
         val fixture = AlertFixture()
-        fixture.alert.start("paid-order", 45_000)
+        fixture.alert.start("paid-order", 60_000)
         fixture.advanceTo(5_000)
         fixture.alert.start("paid-order", 1_000)
         fixture.advanceTo(6_000)
@@ -49,19 +60,19 @@ class VendorIncomingOrderAlertTest {
     @Test fun expiredBlankOrBackgroundRequestsNeverPlay() {
         val fixture = AlertFixture()
         fixture.alert.start("paid-order", 0)
-        fixture.alert.start(" ", 45_000)
+        fixture.alert.start(" ", 60_000)
         fixture.foreground = false
-        fixture.alert.start("paid-order", 45_000)
+        fixture.alert.start("paid-order", 60_000)
         assertEquals(0, fixture.starts)
         assertFalse(fixture.playing)
     }
 
     @Test fun disposedAlertCannotBeRestartedByAnOldUiCallback() {
         val fixture = AlertFixture()
-        fixture.alert.start("paid-order", 45_000)
+        fixture.alert.start("paid-order", 60_000)
         fixture.alert.dispose()
-        fixture.alert.start("another-order", 45_000)
-        fixture.advanceTo(50_000)
+        fixture.alert.start("another-order", 60_000)
+        fixture.advanceTo(70_000)
         assertFalse(fixture.playing)
         assertEquals(1, fixture.starts)
     }

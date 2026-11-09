@@ -14,7 +14,7 @@ import kotlin.time.TimeSource
 
 /** Foreground attention only. Accept/reject and the response deadline remain server-owned. */
 interface VendorIncomingOrderAlert {
-    fun start(orderId: String, remainingMillis: Long = 45_000)
+    fun start(orderId: String, remainingMillis: Long = 60_000)
     fun stop()
 }
 
@@ -42,7 +42,7 @@ internal class FiniteVendorIncomingOrderAlert(
     private var cancellation: VendorAlertCancellation? = null
 
     override fun start(orderId: String, remainingMillis: Long) {
-        val duration = remainingMillis.coerceIn(0L, 45_000L)
+        val duration = remainingMillis.coerceIn(0L, 60_000L)
         if (disposed || orderId.isBlank() || duration == 0L || !isForeground()) {
             stop()
             return

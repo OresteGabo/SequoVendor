@@ -33,7 +33,7 @@ class VendorIncomingOrderCoordinatorTest {
     private val epoch = Instant.parse("2026-11-09T00:00:00Z").toEpochMilliseconds()
     private fun at(offset: Long) = Instant.fromEpochMilliseconds(epoch + offset).toString()
     private fun order(id: String = "part-1", created: Long = 0L, serverNow: Long = 0L,
-        alertUntil: Long = created + 45_000L, responseDeadline: Long = created + 600_000L) = MerchantSubOrder(
+        alertUntil: Long = created + 60_000L, responseDeadline: Long = created + 900_000L) = MerchantSubOrder(
         id = id, subOrderCode = "legacy-$id", merchantId = "merchant-a",
         status = MerchantSubOrderStatus.MERCHANT_PENDING,
         orderStatus = "ACCEPTED_FOR_FULFILLMENT", orderPaymentStatus = "Validated",
@@ -46,34 +46,50 @@ class VendorIncomingOrderCoordinatorTest {
     @Test fun ringEndsExactlyAtServerWindowWithoutCancellingThePendingOrder() {
         val clock = Clock(); val store = Receipts(); val coordinator = coordinator(clock, store); val row = order()
         coordinator.update(listOf(row))
+        assertEquals(60_000L, coordinator.current()?.remainingRingMillis)
+        clock.elapsed = 59_999
+        assertEquals(1L, coordinator.current()?.remainingRingMillis)
+        clock.elapsed = 60_000
+        assertNull(coordinator.current()); assertEquals(1, coordinator.waitingCount())
+        clock.elapsed = 60_001
+        assertNull(coordinator.current()); assertEquals(1, store.writes.size)
+        assertEquals(MerchantSubOrderStatus.MERCHANT_PENDING, row.status)
+    }
+
+    @Test fun oldTimedSnapshotRetainsFortyFiveSecondRingAndTenMinuteResponse() {
+        val clock = Clock(); val coordinator = coordinator(clock)
+        val row = order(alertUntil = 45_000, responseDeadline = 600_000)
+        coordinator.update(listOf(row))
         assertEquals(45_000L, coordinator.current()?.remainingRingMillis)
         clock.elapsed = 44_999
         assertEquals(1L, coordinator.current()?.remainingRingMillis)
         clock.elapsed = 45_000
         assertNull(coordinator.current()); assertEquals(1, coordinator.waitingCount())
-        clock.elapsed = 45_001
-        assertNull(coordinator.current()); assertEquals(1, store.writes.size)
+        clock.elapsed = 599_999
+        assertEquals(1, coordinator.waitingCount())
+        clock.elapsed = 600_000
+        assertEquals(0, coordinator.waitingCount())
         assertEquals(MerchantSubOrderStatus.MERCHANT_PENDING, row.status)
     }
 
     @Test fun slowResponseDeductsItsEntireMeasuredRequestTimeFromTheServerWindow() {
         val clock = Clock(); val coordinator = coordinator(clock)
         coordinator.update(listOf(order()), requestElapsedMillis = 5_000L)
-        assertEquals(40_000L, coordinator.current()?.remainingRingMillis)
-        assertEquals(595_000L, coordinator.current()?.remainingResponseMillis)
-        clock.elapsed = 39_999L
+        assertEquals(55_000L, coordinator.current()?.remainingRingMillis)
+        assertEquals(895_000L, coordinator.current()?.remainingResponseMillis)
+        clock.elapsed = 54_999L
         assertEquals(1L, coordinator.current()?.remainingRingMillis)
-        clock.elapsed = 40_000L
+        clock.elapsed = 55_000L
         assertNull(coordinator.current()); assertEquals(1, coordinator.waitingCount())
         val alreadyLate = coordinator(Clock())
-        alreadyLate.update(listOf(order()), requestElapsedMillis = 45_000L)
+        alreadyLate.update(listOf(order()), requestElapsedMillis = 60_000L)
         assertNull(alreadyLate.current()); assertEquals(1, alreadyLate.waitingCount())
     }
 
     @Test fun negativeOrOverflowingRequestDurationsCannotExtendTheServerWindow() {
         val negative = coordinator(Clock())
         negative.update(listOf(order()), requestElapsedMillis = -1L)
-        assertEquals(45_000L, negative.current()?.remainingRingMillis)
+        assertEquals(60_000L, negative.current()?.remainingRingMillis)
         val excessive = coordinator(Clock())
         excessive.update(listOf(order()), requestElapsedMillis = Long.MAX_VALUE)
         assertNull(excessive.current()); assertEquals(0, excessive.waitingCount())
@@ -82,11 +98,11 @@ class VendorIncomingOrderCoordinatorTest {
     @Test fun responseBoundaryOnlyEndsLocalWaitingAndNeverInventsServerCancellation() {
         val clock = Clock(); val coordinator = coordinator(clock); val row = order()
         coordinator.update(listOf(row)); coordinator.current()
-        clock.elapsed = 599_999
+        clock.elapsed = 899_999
         assertEquals(1, coordinator.waitingCount())
-        clock.elapsed = 600_000
+        clock.elapsed = 900_000
         assertEquals(0, coordinator.waitingCount()); assertNull(coordinator.current())
-        clock.elapsed = 600_001
+        clock.elapsed = 900_001
         assertEquals(0, coordinator.waitingCount())
         assertEquals(MerchantSubOrderStatus.MERCHANT_PENDING, row.status)
     }
@@ -97,7 +113,7 @@ class VendorIncomingOrderCoordinatorTest {
         clock.elapsed = 10_000
         coordinator.update(listOf(order().copy(itemSubtotalCfa = 3000)))
         val current = coordinator.current()
-        assertEquals(35_000L, current?.remainingRingMillis); assertEquals(3000, current?.order?.itemSubtotalCfa)
+        assertEquals(50_000L, current?.remainingRingMillis); assertEquals(3000, current?.order?.itemSubtotalCfa)
         assertEquals(1, store.writes.size)
     }
 
@@ -117,14 +133,14 @@ class VendorIncomingOrderCoordinatorTest {
         assertEquals(2, store.writes.size)
     }
 
-    @Test fun queuedArrivalsKeepTheirOwnDeadlineRatherThanGettingAnotherFortyFiveSeconds() {
+    @Test fun queuedArrivalsKeepTheirOwnDeadlineRatherThanGettingAnotherSixtySeconds() {
         val clock = Clock(); val coordinator = coordinator(clock)
         coordinator.update(listOf(order("later", created = 1000, serverNow = 1000), order("first", serverNow = 1000)))
         assertEquals("first", coordinator.current()?.order?.id)
-        clock.elapsed = 44_000
+        clock.elapsed = 59_000
         val later = coordinator.current()
         assertEquals("later", later?.order?.id); assertEquals(1000L, later?.remainingRingMillis)
-        clock.elapsed = 45_000
+        clock.elapsed = 60_000
         assertNull(coordinator.current())
     }
 
@@ -144,7 +160,7 @@ class VendorIncomingOrderCoordinatorTest {
         clock.elapsed = 20_000
         coordinator.update(listOf(order(serverNow = 20_000), order("unseen", created = 10_000, serverNow = 20_000)))
         assertEquals("unseen", coordinator.current()?.order?.id)
-        assertEquals(35_000L, coordinator.current()?.remainingRingMillis)
+        assertEquals(50_000L, coordinator.current()?.remainingRingMillis)
     }
 
     @Test fun legacyUnpaidCancelledAndMalformedRowsNeverCreateAnIncomingAlert() {
@@ -170,11 +186,11 @@ class VendorIncomingOrderCoordinatorTest {
     @Test fun monotonicClockRollbackAndOlderServerSnapshotsCannotExtendAWindow() {
         val clock = Clock(); val coordinator = coordinator(clock)
         coordinator.update(listOf(order())); coordinator.current()
-        clock.elapsed = 10_000; assertEquals(35_000L, coordinator.current()?.remainingRingMillis)
+        clock.elapsed = 10_000; assertEquals(50_000L, coordinator.current()?.remainingRingMillis)
         clock.elapsed = 5_000
-        coordinator.update(listOf(order(serverNow = 0, alertUntil = 90_000, responseDeadline = 900_000)))
-        assertEquals(35_000L, coordinator.current()?.remainingRingMillis)
-        assertEquals(590_000L, coordinator.current()?.remainingResponseMillis)
+        coordinator.update(listOf(order(serverNow = 0, alertUntil = 120_000, responseDeadline = 1_800_000)))
+        assertEquals(50_000L, coordinator.current()?.remainingRingMillis)
+        assertEquals(890_000L, coordinator.current()?.remainingResponseMillis)
     }
 
     @Test fun badStorageFailsClosedAndCanRecoverOnTheNextFreshRead() {
@@ -189,7 +205,7 @@ class VendorIncomingOrderCoordinatorTest {
 
     @Test fun slowDurableReceiptCannotPresentAnOrderAfterTheRingWindow() {
         val clock = Clock(); val store = Receipts(); val coordinator = coordinator(clock, store)
-        coordinator.update(listOf(order())); store.afterWrite = { clock.elapsed = 45_000 }
+        coordinator.update(listOf(order())); store.afterWrite = { clock.elapsed = 60_000 }
         assertNull(coordinator.current()); assertEquals(1, store.writes.size)
         assertEquals(1, coordinator.waitingCount())
     }
