@@ -20,6 +20,18 @@ fun appText(resource: StringResource, language: AppLanguage): String {
 }
 
 private val EnglishStrings = mapOf(
+    Res.string.selling_options_title.key to "Sizes, amounts & options",
+    Res.string.selling_options_hint.key to "Use a template or add your own choices. Keep only sizes and amounts you actually sell, then save these options separately.",
+    Res.string.selling_clothing_size.key to "Clothing size",
+    Res.string.selling_shoe_size.key to "Shoe size (EU)",
+    Res.string.selling_weight.key to "Weight (kg)",
+    Res.string.selling_type_size.key to "Size",
+    Res.string.selling_type_color.key to "Color",
+    Res.string.selling_type_measure.key to "Measured amount",
+    Res.string.selling_type_preparation.key to "Preparation",
+    Res.string.selling_type_other.key to "Other",
+    Res.string.selling_unit_price_hint.key to "The product price is for 1 {unit}. Each amount is priced automatically. No supplement is needed.",
+    Res.string.selling_amount.key to "Amount",
     Res.string.incoming_order_title.key to "New paid order",
     Res.string.incoming_order_attention.key to "Your confirmation is needed",
     Res.string.incoming_order_ring_countdown.key to "Ringing stops in {seconds}s",
@@ -535,6 +547,18 @@ private val EnglishStrings = mapOf(
 )
 
 private val FrenchStrings = mapOf(
+    Res.string.selling_options_title.key to "Tailles, mesures et options",
+    Res.string.selling_options_hint.key to "Utilisez un modèle ou ajoutez vos choix. Gardez uniquement les tailles et mesures réellement vendues, puis enregistrez ces options séparément.",
+    Res.string.selling_clothing_size.key to "Taille de vêtement",
+    Res.string.selling_shoe_size.key to "Pointure (EU)",
+    Res.string.selling_weight.key to "Poids (kg)",
+    Res.string.selling_type_size.key to "Taille",
+    Res.string.selling_type_color.key to "Couleur",
+    Res.string.selling_type_measure.key to "Mesure",
+    Res.string.selling_type_preparation.key to "Préparation",
+    Res.string.selling_type_other.key to "Autre",
+    Res.string.selling_unit_price_hint.key to "Le prix du produit correspond à 1 {unit}. Le prix de chaque mesure est calculé automatiquement, sans supplément.",
+    Res.string.selling_amount.key to "Mesure",
     Res.string.incoming_order_title.key to "Nouvelle commande payée",
     Res.string.incoming_order_attention.key to "Votre confirmation est attendue",
     Res.string.incoming_order_ring_countdown.key to "La sonnerie s’arrête dans {seconds}s",

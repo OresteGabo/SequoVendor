@@ -420,9 +420,7 @@ private fun ProductEditorCard(
                 OutlinedTextField(value = stockState, onValueChange = { stockState = sanitizeCatalogText(it, 80) }, label = { Text(appText(Res.string.catalog_editor_stock_state)) }, singleLine = true, modifier = Modifier.weight(1f))
             }
             OutlinedTextField(value = prepTime, onValueChange = { prepTime = sanitizeDigits(it, 4) }, label = { Text(appText(Res.string.catalog_editor_prep_time)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            if (onSaveOptions != null && product.syncState == CatalogProductSyncState.SERVER_SYNCED &&
-                (product.category?.lowercase() in setOf("food", "perishable") || product.foodOptionGroups.isNotEmpty())
-            ) {
+            if (onSaveOptions != null && product.syncState == CatalogProductSyncState.SERVER_SYNCED) {
                 FoodOptionsEditor(product, isSaving, onSaveOptions)
             }
             KeyValueRow(appText(Res.string.catalog_editor_availability), if (available) appText(Res.string.catalog_available) else appText(Res.string.catalog_paused))

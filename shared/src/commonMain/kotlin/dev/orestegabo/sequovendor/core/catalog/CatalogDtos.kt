@@ -179,6 +179,7 @@ data class CatalogOptionDto(
     val priceDeltaCfa: Int = 0,
     val sortOrder: Int = 0,
     val active: Boolean = true,
+    val measureAmount: String? = null,
 )
 
 @Serializable
@@ -190,6 +191,8 @@ data class CatalogOptionGroupDto(
     val sortOrder: Int = 0,
     val active: Boolean = true,
     val options: List<CatalogOptionDto>,
+    val type: String = "PREPARATION",
+    val unit: String? = null,
 )
 
 @Serializable
@@ -202,7 +205,8 @@ internal fun CatalogOptionGroupDto.toDomain() = CatalogFoodOptionGroup(
     maxSelections = maxChoices,
     minSelections = minChoices,
     active = active,
-    options = options.map { CatalogFoodOption(it.id.orEmpty(), it.name, it.priceDeltaCfa, it.active) },
+    options = options.map { CatalogFoodOption(it.id.orEmpty(), it.name, it.priceDeltaCfa, it.active, it.measureAmount) },
+    type = type, unit = unit,
 )
 
 internal fun List<CatalogFoodOptionGroup>.toOptionsRequest() = SaveCatalogOptionsRequest(mapIndexed { index, group ->
@@ -213,8 +217,9 @@ internal fun List<CatalogFoodOptionGroup>.toOptionsRequest() = SaveCatalogOption
         maxChoices = group.maxSelections,
         sortOrder = index,
         active = group.active,
+        type = group.type, unit = group.unit,
         options = group.options.mapIndexed { sort, option ->
-            CatalogOptionDto(option.id.ifBlank { null }, option.label, option.priceDeltaCfa, sort, option.available)
+            CatalogOptionDto(option.id.ifBlank { null }, option.label, option.priceDeltaCfa, sort, option.available, option.measureAmount)
         },
     )
 })

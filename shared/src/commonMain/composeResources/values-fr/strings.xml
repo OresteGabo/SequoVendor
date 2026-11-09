@@ -512,4 +512,16 @@
     <string name="incoming_order_no_lines">Ouvrez le détail pour consulter les articles.</string>
     <string name="incoming_order_deadline_notice">Les commandes non confirmées sont annulées à l’échéance affichée.</string>
     <string name="incoming_order_storage_unavailable">Les alertes sont en pause. Ouvrez Commandes pour répondre.</string>
+    <string name="selling_options_title">Tailles, mesures et options</string>
+    <string name="selling_options_hint">Utilisez un modèle ou ajoutez vos choix. Gardez uniquement les tailles et mesures réellement vendues, puis enregistrez ces options séparément.</string>
+    <string name="selling_clothing_size">Taille de vêtement</string>
+    <string name="selling_shoe_size">Pointure (EU)</string>
+    <string name="selling_weight">Poids (kg)</string>
+    <string name="selling_type_size">Taille</string>
+    <string name="selling_type_color">Couleur</string>
+    <string name="selling_type_measure">Mesure</string>
+    <string name="selling_type_preparation">Préparation</string>
+    <string name="selling_type_other">Autre</string>
+    <string name="selling_unit_price_hint">Le prix du produit correspond à 1 {unit}. Le prix de chaque mesure est calculé automatiquement, sans supplément.</string>
+    <string name="selling_amount">Mesure</string>
 </resources>

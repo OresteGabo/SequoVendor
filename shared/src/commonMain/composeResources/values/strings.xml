@@ -512,4 +512,16 @@
     <string name="incoming_order_no_lines">Open order details to review items.</string>
     <string name="incoming_order_deadline_notice">Unconfirmed orders are cancelled when the displayed deadline is reached.</string>
     <string name="incoming_order_storage_unavailable">Incoming alerts are paused. Open Orders to respond.</string>
+    <string name="selling_options_title">Sizes, amounts &amp; options</string>
+    <string name="selling_options_hint">Use a template or add your own choices. Keep only sizes and amounts you actually sell, then save these options separately.</string>
+    <string name="selling_clothing_size">Clothing size</string>
+    <string name="selling_shoe_size">Shoe size (EU)</string>
+    <string name="selling_weight">Weight (kg)</string>
+    <string name="selling_type_size">Size</string>
+    <string name="selling_type_color">Color</string>
+    <string name="selling_type_measure">Measured amount</string>
+    <string name="selling_type_preparation">Preparation</string>
+    <string name="selling_type_other">Other</string>
+    <string name="selling_unit_price_hint">The product price is for 1 {unit}. Each amount is priced automatically. No supplement is needed.</string>
+    <string name="selling_amount">Amount</string>
 </resources>

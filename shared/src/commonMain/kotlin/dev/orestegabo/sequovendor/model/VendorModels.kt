@@ -242,6 +242,8 @@ data class CatalogFoodOptionGroup(
     val options: List<CatalogFoodOption> = emptyList(),
     val minSelections: Int = if (required) 1 else 0,
     val active: Boolean = true,
+    val type: String = "PREPARATION",
+    val unit: String? = null,
 )
 
 @Serializable
@@ -250,6 +252,7 @@ data class CatalogFoodOption(
     val label: String,
     val priceDeltaCfa: Int = 0,
     val available: Boolean = true,
+    val measureAmount: String? = null,
 )
 
 @Serializable
