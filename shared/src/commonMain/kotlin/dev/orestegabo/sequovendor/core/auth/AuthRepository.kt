@@ -42,6 +42,14 @@ class AuthRepository(
         response.session
     }
 
+    suspend fun testAccountsAvailable() = authApiClient.testAccountsAvailable()
+    suspend fun loginWithTestAccount(username: String, password: String): AuthSession = sessionMutex.withLock {
+        val session = authApiClient.loginWithTestAccount(username, password)
+        require(authApiClient.currentUser(session.accessToken).authorizedMerchantIds().isNotEmpty()) { "No shop membership." }
+        saveSession(session)
+        session
+    }
+
     suspend fun localDevelopmentAccess(): LocalNativeAccess = authApiClient.localDevelopmentAccess()
 
     suspend fun loginWithDevelopmentAccount(accountKey: String): CurrentUser = sessionMutex.withLock {

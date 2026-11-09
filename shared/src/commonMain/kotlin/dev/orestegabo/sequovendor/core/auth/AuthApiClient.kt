@@ -25,6 +25,12 @@ class AuthApiClient(
     private val environment: String = NetworkConfig.Environment,
     private val deviceIdProvider: () -> String,
 ) {
+    suspend fun testAccountsAvailable(): Boolean = httpClient.get(NetworkConfig.apiUrl("auth/test-accounts", baseUrl)).body<TestCapability>().enabled
+    suspend fun loginWithTestAccount(username: String, password: String): AuthSession =
+        httpClient.post(NetworkConfig.apiUrl("auth/test-accounts/session", baseUrl)) {
+            setBody(TestLoginRequest(username, password, "VENDOR", TestLoginDevice(deviceIdProvider(), "SEQUO_HUB")))
+        }.body()
+
     suspend fun localDevelopmentAccess(): LocalNativeAccess {
         if (!localNativeAuthAllowed(environment, baseUrl)) return LocalNativeAccess(false)
         val capability = httpClient.get(NetworkConfig.apiUrl("auth/development-access", baseUrl)) {
@@ -364,3 +370,7 @@ private enum class AppSource {
     @SerialName("SEQUO_HUB")
     SequoHub,
 }
+
+@Serializable private data class TestCapability(val enabled: Boolean = false)
+@Serializable private data class TestLoginRequest(val username:String,val password:String,val appFamily:String,val device:TestLoginDevice)
+@Serializable private data class TestLoginDevice(val deviceId:String,val appSource:String)

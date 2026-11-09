@@ -326,6 +326,12 @@ internal fun SequoVendorShell(
         AuthScreen(
             language = language,
             onLanguageChange = onLanguageChange,
+            testAccountsAvailable = authRepository::testAccountsAvailable,
+            onTestAccountLogin = { username, password ->
+                clearSavedSessionForDifferentAccount()
+                authRepository.loginWithTestAccount(username, password)
+                openMerchantWorkspace(checkNotNull(authRepository.currentUser()))
+            },
             emailAuthInProgress = emailAuthInProgress,
             googleSignInInProgress = googleSignInInProgress,
             rememberedUser = rememberedUser,

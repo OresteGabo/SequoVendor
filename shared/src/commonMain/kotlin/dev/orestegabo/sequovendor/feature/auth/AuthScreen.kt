@@ -114,6 +114,8 @@ fun AuthScreen(
     onSequoLogin: () -> Unit = {},
     onSkipAuth: () -> Unit,
     onPrivacyTermsClick: () -> Unit,
+    testAccountsAvailable: suspend () -> Boolean = { false },
+    onTestAccountLogin: suspend (String,String) -> Unit = { _,_ -> },
     onLocalTestAccountsClick: (() -> Unit)? = null,
     localTestBusy: Boolean = false,
     modifier: Modifier = Modifier,
@@ -149,6 +151,8 @@ fun AuthScreen(
             onSequoLogin = onSequoLogin,
             onSkipAuth = onSkipAuth,
             onPrivacyTermsClick = onPrivacyTermsClick,
+            testAccountsAvailable = testAccountsAvailable,
+            onTestAccountLogin = onTestAccountLogin,
             onLocalTestAccountsClick = onLocalTestAccountsClick,
             localTestBusy = localTestBusy,
         )
@@ -157,6 +161,8 @@ fun AuthScreen(
 
 @Composable
 private fun SocialAuthPage(
+    testAccountsAvailable: suspend () -> Boolean,
+    onTestAccountLogin: suspend (String,String) -> Unit,
     language: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
     onAppleLogin: () -> Unit,
@@ -220,6 +226,7 @@ private fun SocialAuthPage(
                     onSequoLogin = onSequoLogin,
                 )
 
+                TestAccountLoginEntry(testAccountsAvailable, onTestAccountLogin, language == AppLanguage.French, Modifier.fillMaxWidth())
                 GuestBrowseLink(onClick = onSkipAuth)
                 onLocalTestAccountsClick?.let { open ->
                     SequoOutlineButton(onClick = open, enabled = !localTestBusy && !googleSignInInProgress, modifier = Modifier.fillMaxWidth()) {
