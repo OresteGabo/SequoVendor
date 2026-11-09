@@ -66,6 +66,7 @@ enum class RoleCode {
     RELAY_PARTNER,
     SUPPORT_AGENT,
     ADMIN,
+    STAFF_MANAGER,
     SUPER_ADMIN,
 }
 
@@ -73,6 +74,7 @@ val RoleCode.isMerchantOperator: Boolean
     get() = this == RoleCode.MERCHANT_OWNER ||
         this == RoleCode.MERCHANT_STAFF ||
         this == RoleCode.ADMIN ||
+        this == RoleCode.STAFF_MANAGER ||
         this == RoleCode.SUPER_ADMIN
 
 @Serializable
