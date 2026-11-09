@@ -741,12 +741,17 @@ internal fun SequoVendorShell(
             if (!sameMerchantSession()) return@launch
             notificationActionFailed = false
             notificationPreferenceSaved = false
+            notificationPreferencesVerified = false
+            incomingRinger.stop()
             val result = notificationsRepository.savePreference(preference)
             if (!sameMerchantSession()) return@launch
             when (result) {
                 is ApiResult.Success -> {
                     notificationPreference = result.value
-                    notificationPreferenceSaved = true
+                    // Re-read ORDER_CREATED: an event override can differ from the saved ALL preference.
+                    refreshNotifications(showLoading = false)
+                    notificationPreferenceSaved = notificationPreferencesVerified
+                    if (!notificationPreferencesVerified) notificationActionFailed = true
                 }
                 is ApiResult.Failure -> notificationActionFailed = true
             }

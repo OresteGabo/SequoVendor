@@ -345,3 +345,13 @@ Other useful commands:
 - This repository is a Kotlin Multiplatform app with `androidApp`, `iosApp`, and `shared` modules.
 - Treat generated `build/` artifacts and local screenshots as development output, not source-of-truth product documentation.
 - Do not call target/future backend routes until active controllers exist and enforce merchant scope.
+
+## Incoming paid orders
+
+Real merchant sessions check their authorized queue every five seconds while the app is in the foreground. Newly paid orders with server timing snapshots open a localized incoming-order screen with the actual merchant reference, quantities and subtotal. Accept and Refuse use the existing merchant-scoped server actions and canonical readback. Keep waiting only silences the alert.
+
+The default sound window is 45 seconds; the order remains pending afterwards and can still be accepted before its ten-minute server deadline. The backend snapshots both deadlines when the paid merchant part is created and enforces expiration independently of the app. Existing untimed orders are retained without retroactive ringing or cancellation. Device receipts prevent an already presented alert from ringing again after relaunch. Failed reads stop attention and never pretend an action succeeded.
+
+Native foreground sound/haptics respect system silent/DND/volume settings and effective notification preferences. Background/closed-app delivery is **not connected**: native Firebase/APNs registration and server push transport must be configured and verified before advertising wake-from-closed ringing. This is an order alert, using ordinary notification audio; no telephony/VoIP or background-audio capability is requested. Actual audible volume and haptics still need physical-phone verification.
+
+Server policy, migration, grouped-order/refund handling and local native verification are recorded in the sibling API's `docs/verification/vendor-incoming-orders-2026-11-09.md`. Only fixed synthetic localhost fixtures are used for verification; no real payment or refund is performed.
