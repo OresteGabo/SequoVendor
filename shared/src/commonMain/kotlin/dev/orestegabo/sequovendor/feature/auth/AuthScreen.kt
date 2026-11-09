@@ -1,5 +1,6 @@
 package dev.orestegabo.sequovendor.feature.auth
 
+import dev.orestegabo.sequo.design.sequoBrandSymbolPainter
 import dev.orestegabo.sequo.design.SequoDesign
 import dev.orestegabo.sequo.design.SequoOutlineButton
 
@@ -1018,7 +1019,7 @@ private fun ProviderIconRow(
                     onClick = providerClick(AuthProviderShortcut.Sequo, onSequoLogin),
                 ) {
                     Image(
-                        painter = painterResource(Res.drawable.sequo_icon_green),
+                        painter = sequoBrandSymbolPainter(),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.size(30.dp),
@@ -1707,7 +1708,7 @@ private fun BrandMark(
 @Composable
 private fun SequoMark(modifier: Modifier = Modifier) {
     Image(
-        painter = painterResource(Res.drawable.sequo_icon_green),
+        painter = sequoBrandSymbolPainter(),
         contentDescription = null,
         contentScale = ContentScale.Fit,
         modifier = modifier,
