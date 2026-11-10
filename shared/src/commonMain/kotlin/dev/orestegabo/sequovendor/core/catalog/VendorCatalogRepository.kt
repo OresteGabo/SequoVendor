@@ -12,6 +12,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 interface VendorCatalogRepository {
+    suspend fun productSuggestions(query: String): List<CatalogProductReference> = emptyList()
     suspend fun listServerProducts(merchantId: String): ApiResult<List<CatalogProduct>>
 
     suspend fun saveDraftLocally(
@@ -49,6 +50,8 @@ class NetworkVendorCatalogRepository(
     private val apiClient: CatalogApiClient,
 ) : VendorCatalogRepository {
     private var localDrafts = emptyList<CatalogProduct>()
+
+    override suspend fun productSuggestions(query: String) = apiClient.productSuggestions(query)
 
     override suspend fun listServerProducts(merchantId: String): ApiResult<List<CatalogProduct>> =
         safeApiCall { apiClient.listMerchantProducts(merchantId, includeArchived = true) }

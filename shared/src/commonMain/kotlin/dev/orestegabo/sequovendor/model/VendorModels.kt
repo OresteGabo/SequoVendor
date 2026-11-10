@@ -231,6 +231,8 @@ data class CatalogProduct(
     val foodOptionGroups: List<CatalogFoodOptionGroup> = emptyList(),
     val photoRequired: Boolean = false,
     val imageUrl: String? = null,
+    val productReference: dev.orestegabo.sequovendor.core.catalog.CatalogProductReference? = null,
+    val sharedReferenceCleared: Boolean = false,
 )
 
 @Serializable

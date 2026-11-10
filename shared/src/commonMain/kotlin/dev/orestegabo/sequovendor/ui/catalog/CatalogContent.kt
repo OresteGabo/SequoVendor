@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import dev.orestegabo.sequo.design.SequoOutlineButton as OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +27,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
+import dev.orestegabo.sequovendor.core.catalog.CatalogProductReference
+import sequovendor.shared.generated.resources.catalog_shared_hint
+import sequovendor.shared.generated.resources.catalog_shared_selected
+import sequovendor.shared.generated.resources.catalog_shared_unlink
+import sequovendor.shared.generated.resources.catalog_shared_unavailable
+import sequovendor.shared.generated.resources.catalog_shared_none
+import sequovendor.shared.generated.resources.catalog_shared_loading
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -110,6 +121,7 @@ internal fun CatalogContent(
     isOffline: Boolean,
     onRefresh: () -> Unit,
     onSaveProduct: (CatalogProduct) -> Unit,
+    loadProductSuggestions: suspend (String) -> List<CatalogProductReference> = { emptyList() },
     onSaveOptions: ((CatalogProduct, List<CatalogFoodOptionGroup>) -> Unit)?,
     onAttachPhoto: ((CatalogProduct, ByteArray?) -> Unit)?,
     saveInProgress: Boolean,
@@ -176,6 +188,7 @@ internal fun CatalogContent(
             item {
                 ProductEditorCard(
                     product = product,
+                    loadProductSuggestions = loadProductSuggestions,
                     onCancel = {
                         editingProduct = null
                         onClearSaveResult()
@@ -340,6 +353,7 @@ private fun ProductCard(product: CatalogProduct, onEdit: () -> Unit) {
 @Composable
 private fun ProductEditorCard(
     product: CatalogProduct,
+    loadProductSuggestions: suspend (String) -> List<CatalogProductReference>,
     onCancel: () -> Unit,
     onSave: (CatalogProduct) -> Unit,
     onSaveOptions: ((List<CatalogFoodOptionGroup>) -> Unit)?,
@@ -353,6 +367,24 @@ private fun ProductEditorCard(
         jpeg?.let { onAttachPhoto?.invoke(it) }
     }
     var name by remember(product.id) { mutableStateOf(product.name) }
+    var sharedReference by remember(product.id) { mutableStateOf(product.productReference) }
+    var referenceCleared by remember(product.id) { mutableStateOf(product.sharedReferenceCleared) }
+    var showSuggestions by remember(product.id) { mutableStateOf(product.productReference == null && product.name.isNotBlank()) }
+    var suggestions by remember(product.id) { mutableStateOf<List<CatalogProductReference>>(emptyList()) }
+    var suggestionsLoading by remember(product.id) { mutableStateOf(false) }
+    var suggestionsFailed by remember(product.id) { mutableStateOf(false) }
+    val suggest by rememberUpdatedState(loadProductSuggestions)
+    LaunchedEffect(name, showSuggestions) {
+        suggestions = emptyList(); suggestionsFailed = false; suggestionsLoading = false
+        if (showSuggestions && name.trim().length >= 2) {
+            suggestionsLoading = true
+            delay(300)
+            try { suggestions = suggest(name.trim()) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { suggestionsFailed = true }
+            finally { suggestionsLoading = false }
+        }
+    }
     var category by remember(product.id) { mutableStateOf(product.category.orEmpty()) }
     var subcategory by remember(product.id) { mutableStateOf(product.subcategory.orEmpty()) }
     var detail by remember(product.id) { mutableStateOf(product.detail.orEmpty()) }
@@ -405,7 +437,35 @@ private fun ProductEditorCard(
                 }
             }
             Text(appText(Res.string.catalog_editor_food_policy), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedTextField(value = name, onValueChange = { name = it.take(180) }, label = { Text(appText(Res.string.catalog_editor_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = name, onValueChange = { name = it.take(180); showSuggestions = true }, label = { Text(appText(Res.string.catalog_editor_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Text(appText(Res.string.catalog_shared_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            sharedReference?.let { reference ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(appText(Res.string.catalog_shared_selected).replace("{name}", reference.name), modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    TextButton(onClick = { sharedReference = null; referenceCleared = true; showSuggestions = false }, enabled = !isSaving) {
+                        Text(appText(Res.string.catalog_shared_unlink))
+                    }
+                }
+            }
+            if (showSuggestions && name.trim().length >= 2) {
+                when {
+                    suggestionsLoading -> Text(appText(Res.string.catalog_shared_loading), style = MaterialTheme.typography.bodySmall)
+                    suggestionsFailed -> Text(appText(Res.string.catalog_shared_unavailable), style = MaterialTheme.typography.bodySmall)
+                    suggestions.isEmpty() -> Text(appText(Res.string.catalog_shared_none), style = MaterialTheme.typography.bodySmall)
+                    else -> suggestions.forEach { reference ->
+                        OutlinedButton(onClick = {
+                            sharedReference = reference; referenceCleared = false; showSuggestions = false
+                            name = reference.name
+                            if (category.isBlank()) category = reference.category
+                        }, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(reference.name, style = MaterialTheme.typography.titleSmall)
+                                Text(reference.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = category, onValueChange = { category = sanitizeCatalogText(it, 80) }, label = { Text(appText(Res.string.catalog_editor_category)) }, singleLine = true, modifier = Modifier.weight(1f))
                 OutlinedTextField(value = subcategory, onValueChange = { subcategory = sanitizeCatalogText(it, 80) }, label = { Text(appText(Res.string.catalog_editor_subcategory)) }, singleLine = true, modifier = Modifier.weight(1f))
@@ -449,6 +509,8 @@ private fun ProductEditorCard(
                         onSave(
                             product.copy(
                                 name = name.trim(),
+                                productReference = sharedReference,
+                                sharedReferenceCleared = referenceCleared,
                                 kind = kind,
                                 category = category.trim().ifBlank { null },
                                 subcategory = subcategory.trim().ifBlank { null },

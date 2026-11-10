@@ -24,6 +24,11 @@ class CatalogApiClient(
     private val baseUrl: String = NetworkConfig.BaseUrl,
     private val httpClient: HttpClient = createSequoVendorHttpClient(baseUrl),
 ) {
+    suspend fun productSuggestions(query: String): List<CatalogProductReference> =
+        httpClient.get(NetworkConfig.apiUrl("catalog/product-references", baseUrl)) {
+            parameter("q", query); parameter("limit", 6)
+        }.body()
+
     suspend fun listMerchantProducts(
         merchantId: String,
         includeArchived: Boolean = true,

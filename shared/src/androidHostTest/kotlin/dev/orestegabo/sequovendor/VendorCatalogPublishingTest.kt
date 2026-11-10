@@ -35,6 +35,34 @@ class VendorCatalogPublishingTest {
     private val active = """{"id":"server-product","merchantId":"merchant-1","name":"Mango","priceCfa":750,"detail":"Fresh mango"}"""
 
     @Test
+    fun sharedSuggestionsAndExplicitLinksSurviveCreateEditAndUnlink() = runBlocking {
+        val reference = dev.orestegabo.sequovendor.core.catalog.CatalogProductReference("ref-milk", "Lait", "grocery", listOf("milk"))
+        val response = active.dropLast(1) + """, "productReference":{"id":"ref-milk","name":"Lait","category":"grocery","aliases":["milk"]}}"""
+        val sent = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            if (request.method == HttpMethod.Get) {
+                assertEquals("/api/catalog/product-references", request.url.encodedPath)
+                assertEquals("lai", request.url.parameters["q"])
+                assertEquals("6", request.url.parameters["limit"])
+                respond("""[{"id":"ref-milk","name":"Lait","category":"grocery","aliases":["milk"]}]""", HttpStatusCode.OK, jsonHeaders)
+            } else {
+                val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
+                sent += body.getValue("productReferenceId").jsonPrimitive.content
+                respond(response, HttpStatusCode.OK, jsonHeaders)
+            }
+        }
+        createSequoVendorHttpClient(baseUrl, engine = engine).use { http ->
+            val api = CatalogApiClient(baseUrl, http)
+            assertEquals(reference, api.productSuggestions("lai").single())
+            val product = CatalogProduct("local-product-ref", "Brand A 1 L", priceCfa = 1200, productReference = reference)
+            assertEquals(reference, api.createMerchantProduct("merchant-1", product).productReference)
+            api.updateMerchantProduct(product.copy(id = "server-product", merchantId = "merchant-1"))
+            api.updateMerchantProduct(product.copy(id = "server-product", merchantId = "merchant-1", productReference = null, sharedReferenceCleared = true))
+            assertEquals(listOf("ref-milk", "ref-milk", ""), sent)
+        }
+    }
+
+    @Test
     fun optionSaveCarriesStableIdsConstraintsAndAvailability() = runBlocking {
         val json = """{"groups":[{"id":"side","name":"Side","minChoices":1,"options":[{"id":"plantain","name":"Plantain","priceDeltaCfa":500,"active":false}]}]}"""
         val engine = MockEngine { request ->

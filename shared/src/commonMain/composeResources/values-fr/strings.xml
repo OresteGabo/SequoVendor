@@ -524,4 +524,10 @@
     <string name="selling_type_other">Autre</string>
     <string name="selling_unit_price_hint">Le prix du produit correspond à 1 {unit}. Le prix de chaque mesure est calculé automatiquement, sans supplément.</string>
     <string name="selling_amount">Mesure</string>
+    <string name="catalog_shared_hint">Choisissez un produit commun pour que les clients le retrouvent dans plusieurs boutiques. Précisez votre marque, format et autres détails dans la fiche.</string>
+    <string name="catalog_shared_selected">Produit associé : {name}</string>
+    <string name="catalog_shared_unlink">Dissocier</string>
+    <string name="catalog_shared_unavailable">Suggestions indisponibles. Vous pouvez enregistrer votre produit.</string>
+    <string name="catalog_shared_none">Aucune suggestion. Le nom complet du produit servira de référence commune lors de l’enregistrement.</string>
+    <string name="catalog_shared_loading">Recherche de produits correspondants…</string>
 </resources>

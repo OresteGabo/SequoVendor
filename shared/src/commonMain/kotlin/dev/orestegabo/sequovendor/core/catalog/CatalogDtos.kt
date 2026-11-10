@@ -29,6 +29,7 @@ data class CatalogProductDto(
     val photoRequired: Boolean = false,
     val imageUrl: String? = null,
     val customizations: List<CatalogOptionGroupDto> = emptyList(),
+    val productReference: CatalogProductReference? = null,
 )
 
 @Serializable
@@ -49,6 +50,7 @@ data class ManageCatalogProductRequest(
     val capturedAtLabel: String? = null,
     val sortOrder: Int = 0,
     val idempotencyKey: String? = null,
+    val productReferenceId: String? = null,
 )
 
 @Serializable
@@ -66,6 +68,7 @@ data class PatchCatalogProductRequest(
     val cameraVerified: Boolean? = null,
     val capturedAtLabel: String? = null,
     val sortOrder: Int? = null,
+    val productReferenceId: String? = null,
 )
 
 fun CatalogProductDto.toDomain(): CatalogProduct =
@@ -95,6 +98,7 @@ fun CatalogProductDto.toDomain(): CatalogProduct =
         foodOptionGroups = customizations.map { it.toDomain() },
         photoRequired = photoRequired,
         imageUrl = imageUrl,
+        productReference = productReference,
     )
 
 private fun String.toCatalogProductStatus(): CatalogProductStatus =
@@ -138,11 +142,13 @@ fun CatalogProduct.toManageCatalogProductRequest(merchantId: String): ManageCata
         cameraVerified = cameraVerified,
         capturedAtLabel = capturedAtLabel,
         idempotencyKey = id.takeIf { it.isNotBlank() },
+        productReferenceId = productReference?.id ?: if (sharedReferenceCleared) "" else null,
     )
 
 fun CatalogProduct.toPatchCatalogProductRequest(): PatchCatalogProductRequest =
     PatchCatalogProductRequest(
         name = name,
+        productReferenceId = productReference?.id ?: if (sharedReferenceCleared) "" else null,
         status = status.toApiValue(),
         category = category.orEmpty(),
         subcategory = subcategory.orEmpty(),
@@ -223,3 +229,7 @@ internal fun List<CatalogFoodOptionGroup>.toOptionsRequest() = SaveCatalogOption
         },
     )
 })
+
+@Serializable
+data class CatalogProductReference(val id: String, val name: String, val category: String,
+    val aliases: List<String> = emptyList())

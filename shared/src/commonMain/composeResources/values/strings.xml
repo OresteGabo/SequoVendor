@@ -524,4 +524,10 @@
     <string name="selling_type_other">Other</string>
     <string name="selling_unit_price_hint">The product price is for 1 {unit}. Each amount is priced automatically. No supplement is needed.</string>
     <string name="selling_amount">Amount</string>
+    <string name="catalog_shared_hint">Choose a shared product to help customers find it across shops. Keep your brand, pack size and other details in the listing.</string>
+    <string name="catalog_shared_selected">Linked product: {name}</string>
+    <string name="catalog_shared_unlink">Unlink</string>
+    <string name="catalog_shared_unavailable">Suggestions unavailable. You can still save your product.</string>
+    <string name="catalog_shared_none">No matching suggestion. Your full product name will be used as its shared reference when saved.</string>
+    <string name="catalog_shared_loading">Finding matching products…</string>
 </resources>

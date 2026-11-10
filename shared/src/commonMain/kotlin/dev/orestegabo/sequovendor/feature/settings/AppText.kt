@@ -20,6 +20,13 @@ fun appText(resource: StringResource, language: AppLanguage): String {
 }
 
 private val EnglishStrings = mapOf(
+    Res.string.catalog_shared_hint.key to "Choose a shared product to help customers find it across shops. Keep your brand, pack size and other details in the listing.",
+    Res.string.catalog_shared_selected.key to "Linked product: {name}",
+    Res.string.catalog_shared_unlink.key to "Unlink",
+    Res.string.catalog_shared_unavailable.key to "Suggestions unavailable. You can still save your product.",
+    Res.string.catalog_shared_none.key to "No matching suggestion. Your full product name will be used as its shared reference when saved.",
+    Res.string.catalog_shared_loading.key to "Finding matching products…",
+
     Res.string.selling_options_title.key to "Sizes, amounts & options",
     Res.string.selling_options_hint.key to "Use a template or add your own choices. Keep only sizes and amounts you actually sell, then save these options separately.",
     Res.string.selling_clothing_size.key to "Clothing size",
@@ -547,6 +554,13 @@ private val EnglishStrings = mapOf(
 )
 
 private val FrenchStrings = mapOf(
+    Res.string.catalog_shared_hint.key to "Choisissez un produit commun pour que les clients le retrouvent dans plusieurs boutiques. Précisez votre marque, format et autres détails dans la fiche.",
+    Res.string.catalog_shared_selected.key to "Produit associé : {name}",
+    Res.string.catalog_shared_unlink.key to "Dissocier",
+    Res.string.catalog_shared_unavailable.key to "Suggestions indisponibles. Vous pouvez enregistrer votre produit.",
+    Res.string.catalog_shared_none.key to "Aucune suggestion. Le nom complet du produit servira de référence commune lors de l’enregistrement.",
+    Res.string.catalog_shared_loading.key to "Recherche de produits correspondants…",
+
     Res.string.selling_options_title.key to "Tailles, mesures et options",
     Res.string.selling_options_hint.key to "Utilisez un modèle ou ajoutez vos choix. Gardez uniquement les tailles et mesures réellement vendues, puis enregistrez ces options séparément.",
     Res.string.selling_clothing_size.key to "Taille de vêtement",
