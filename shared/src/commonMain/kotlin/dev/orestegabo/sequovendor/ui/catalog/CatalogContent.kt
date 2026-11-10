@@ -38,6 +38,8 @@ import sequovendor.shared.generated.resources.catalog_shared_unlink
 import sequovendor.shared.generated.resources.catalog_shared_unavailable
 import sequovendor.shared.generated.resources.catalog_shared_none
 import sequovendor.shared.generated.resources.catalog_shared_loading
+import sequovendor.shared.generated.resources.catalog_essentials_choose
+import sequovendor.shared.generated.resources.catalog_essentials_hint
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -123,6 +125,7 @@ internal fun CatalogContent(
     onRefresh: () -> Unit,
     onSaveProduct: (CatalogProduct) -> Unit,
     loadProductSuggestions: suspend (String) -> List<CatalogProductReference> = { emptyList() },
+    loadEssentialProducts: suspend () -> List<CatalogProductReference> = { emptyList() },
     onSaveOptions: ((CatalogProduct, List<CatalogFoodOptionGroup>) -> Unit)?,
     onAttachPhoto: ((CatalogProduct, ByteArray?) -> Unit)?,
     saveInProgress: Boolean,
@@ -192,6 +195,7 @@ internal fun CatalogContent(
                 ProductEditorCard(
                     product = product,
                     loadProductSuggestions = loadProductSuggestions,
+                    loadEssentialProducts = loadEssentialProducts,
                     onCancel = {
                         editingProduct = null
                         onClearSaveResult()
@@ -357,6 +361,7 @@ private fun ProductCard(product: CatalogProduct, onEdit: () -> Unit) {
 private fun ProductEditorCard(
     product: CatalogProduct,
     loadProductSuggestions: suspend (String) -> List<CatalogProductReference>,
+    loadEssentialProducts: suspend () -> List<CatalogProductReference>,
     onCancel: () -> Unit,
     onSave: (CatalogProduct) -> Unit,
     onSaveOptions: ((List<CatalogFoodOptionGroup>) -> Unit)?,
@@ -369,6 +374,7 @@ private fun ProductEditorCard(
         cameraFailed = jpeg == null
         jpeg?.let { onAttachPhoto?.invoke(it) }
     }
+    var essentialsOpen by remember(product.id) { mutableStateOf(false) }
     var name by remember(product.id) { mutableStateOf(product.name) }
     var sharedReference by remember(product.id) { mutableStateOf(product.productReference) }
     var referenceCleared by remember(product.id) { mutableStateOf(product.sharedReferenceCleared) }
@@ -402,6 +408,14 @@ private fun ProductEditorCard(
     var bargainingEnabled by remember(product.id) { mutableStateOf(product.bargainingEnabled) }
     val priceRequired = product.name.isBlank() || product.priceCfa != null
     val canSave = name.isNotBlank() && (!priceRequired || price.toIntOrNull() != null)
+    if (essentialsOpen) EssentialProductPicker(loadEssentialProducts, onDismiss = { essentialsOpen = false }) { reference ->
+        val replaceName = name.isBlank() || name == sharedReference?.name
+        val replaceCategory = category.isBlank() || category == sharedReference?.category
+        sharedReference = reference; referenceCleared = false; showSuggestions = false
+        if (replaceName) name = reference.name
+        if (replaceCategory) category = reference.category
+        essentialsOpen = false
+    }
     VendorCard {
         Column(Modifier.fillMaxWidth().padding(SequoDesign.CardPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -415,6 +429,10 @@ private fun ProductEditorCard(
                     enabled = !isSaving && (!product.photoRequired || product.imageUrl != null),
                 )
             }
+            OutlinedButton(onClick = { essentialsOpen = true }, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) {
+                Text(appText(Res.string.catalog_essentials_choose))
+            }
+            Text(appText(Res.string.catalog_essentials_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(appText(Res.string.catalog_editor_photo_policy), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (product.name.isBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

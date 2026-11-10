@@ -530,4 +530,16 @@
     <string name="catalog_shared_unavailable">Suggestions unavailable. You can still save your product.</string>
     <string name="catalog_shared_none">No matching suggestion. Your full product name will be used as its shared reference when saved.</string>
     <string name="catalog_shared_loading">Finding matching products…</string>
+    <string name="catalog_essentials_choose">Choose from essentials</string>
+    <string name="catalog_essentials_hint">Milk, beans, rice and everyday basics. Pick a shared product, then add your shop’s offer.</string>
+    <string name="catalog_essentials_title">Essential products</string>
+    <string name="catalog_essentials_picker_hint">One shared product across shops. Your price, brand, pack size and stock stay yours.</string>
+    <string name="catalog_essentials_search">Find an essential product</string>
+    <string name="catalog_essentials_all">All</string>
+    <string name="catalog_essentials_grocery">Food &amp; groceries</string>
+    <string name="catalog_essentials_home">Household</string>
+    <string name="catalog_essentials_care">Personal care</string>
+    <string name="catalog_essentials_baby">Baby</string>
+    <string name="catalog_essentials_failed">Unable to load essentials. Retry or close this list to enter your product manually.</string>
+    <string name="catalog_essentials_empty">No matching product. Try another name or category, or close the list to enter your own product.</string>
 </resources>

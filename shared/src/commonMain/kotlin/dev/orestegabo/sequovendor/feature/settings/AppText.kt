@@ -20,6 +20,19 @@ fun appText(resource: StringResource, language: AppLanguage): String {
 }
 
 private val EnglishStrings = mapOf(
+    Res.string.catalog_essentials_choose.key to "Choose from essentials",
+    Res.string.catalog_essentials_hint.key to "Milk, beans, rice and everyday basics. Pick a shared product, then add your shop’s offer.",
+    Res.string.catalog_essentials_title.key to "Essential products",
+    Res.string.catalog_essentials_picker_hint.key to "One shared product across shops. Your price, brand, pack size and stock stay yours.",
+    Res.string.catalog_essentials_search.key to "Find an essential product",
+    Res.string.catalog_essentials_all.key to "All",
+    Res.string.catalog_essentials_grocery.key to "Food & groceries",
+    Res.string.catalog_essentials_home.key to "Household",
+    Res.string.catalog_essentials_care.key to "Personal care",
+    Res.string.catalog_essentials_baby.key to "Baby",
+    Res.string.catalog_essentials_failed.key to "Unable to load essentials. Retry or close this list to enter your product manually.",
+    Res.string.catalog_essentials_empty.key to "No matching product. Try another name or category, or close the list to enter your own product.",
+
     Res.string.catalog_shared_hint.key to "Choose a shared product to help customers find it across shops. Keep your brand, pack size and other details in the listing.",
     Res.string.catalog_shared_selected.key to "Linked product: {name}",
     Res.string.catalog_shared_unlink.key to "Unlink",
@@ -554,6 +567,19 @@ private val EnglishStrings = mapOf(
 )
 
 private val FrenchStrings = mapOf(
+    Res.string.catalog_essentials_choose.key to "Choisir parmi les produits essentiels",
+    Res.string.catalog_essentials_hint.key to "Lait, haricots, riz et produits du quotidien. Choisissez un produit commun, puis ajoutez l’offre de votre boutique.",
+    Res.string.catalog_essentials_title.key to "Produits essentiels",
+    Res.string.catalog_essentials_picker_hint.key to "Un produit commun à plusieurs boutiques. Votre prix, marque, format et stock restent propres à votre offre.",
+    Res.string.catalog_essentials_search.key to "Rechercher un produit essentiel",
+    Res.string.catalog_essentials_all.key to "Tous",
+    Res.string.catalog_essentials_grocery.key to "Alimentation",
+    Res.string.catalog_essentials_home.key to "Maison",
+    Res.string.catalog_essentials_care.key to "Hygiène",
+    Res.string.catalog_essentials_baby.key to "Bébé",
+    Res.string.catalog_essentials_failed.key to "Impossible de charger les produits essentiels. Réessayez ou fermez cette liste pour saisir votre produit.",
+    Res.string.catalog_essentials_empty.key to "Aucun produit correspondant. Essayez un autre nom ou une autre catégorie, ou fermez la liste pour saisir votre produit.",
+
     Res.string.catalog_shared_hint.key to "Choisissez un produit commun pour que les clients le retrouvent dans plusieurs boutiques. Précisez votre marque, format et autres détails dans la fiche.",
     Res.string.catalog_shared_selected.key to "Produit associé : {name}",
     Res.string.catalog_shared_unlink.key to "Dissocier",

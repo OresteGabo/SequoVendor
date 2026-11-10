@@ -530,4 +530,16 @@
     <string name="catalog_shared_unavailable">Suggestions indisponibles. Vous pouvez enregistrer votre produit.</string>
     <string name="catalog_shared_none">Aucune suggestion. Le nom complet du produit servira de référence commune lors de l’enregistrement.</string>
     <string name="catalog_shared_loading">Recherche de produits correspondants…</string>
+    <string name="catalog_essentials_choose">Choisir parmi les produits essentiels</string>
+    <string name="catalog_essentials_hint">Lait, haricots, riz et produits du quotidien. Choisissez un produit commun, puis ajoutez l’offre de votre boutique.</string>
+    <string name="catalog_essentials_title">Produits essentiels</string>
+    <string name="catalog_essentials_picker_hint">Un produit commun à plusieurs boutiques. Votre prix, marque, format et stock restent propres à votre offre.</string>
+    <string name="catalog_essentials_search">Rechercher un produit essentiel</string>
+    <string name="catalog_essentials_all">Tous</string>
+    <string name="catalog_essentials_grocery">Alimentation</string>
+    <string name="catalog_essentials_home">Maison</string>
+    <string name="catalog_essentials_care">Hygiène</string>
+    <string name="catalog_essentials_baby">Bébé</string>
+    <string name="catalog_essentials_failed">Impossible de charger les produits essentiels. Réessayez ou fermez cette liste pour saisir votre produit.</string>
+    <string name="catalog_essentials_empty">Aucun produit correspondant. Essayez un autre nom ou une autre catégorie, ou fermez la liste pour saisir votre produit.</string>
 </resources>

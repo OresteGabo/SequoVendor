@@ -1183,6 +1183,7 @@ internal fun SequoVendorShell(
                             onRefresh = { scope.launch { refreshCatalog(showLoading = true) } },
                             onSaveProduct = ::saveProduct,
                             loadProductSuggestions = { query -> catalogRepository.productSuggestions(query) },
+                            loadEssentialProducts = { catalogRepository.essentialProducts() },
                             onSaveOptions = if (activeSession.localMode) null else ::saveProductOptions,
                             onAttachPhoto = if (activeSession.localMode) null else ::attachProductPhoto,
                             saveInProgress = catalogSaveInProgress,

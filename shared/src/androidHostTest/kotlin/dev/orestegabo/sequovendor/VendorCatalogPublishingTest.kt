@@ -35,6 +35,20 @@ class VendorCatalogPublishingTest {
     private val active = """{"id":"server-product","merchantId":"merchant-1","name":"Mango","priceCfa":750,"detail":"Fresh mango"}"""
 
     @Test
+    fun essentialsUseTheSharedCatalogWithoutCreatingSellerOffers() = runBlocking {
+        val engine = MockEngine { request ->
+            assertEquals(HttpMethod.Get, request.method)
+            assertEquals("/api/catalog/product-references/essentials", request.url.encodedPath)
+            respond("""[{"id":"ref-milk","name":"Lait","category":"grocery","aliases":["milk"],"essential":true}]""", HttpStatusCode.OK, jsonHeaders)
+        }
+        createSequoVendorHttpClient(baseUrl, engine = engine).use { http ->
+            val reference = CatalogApiClient(baseUrl, http).essentialProducts().single()
+            assertEquals("ref-milk", reference.id)
+            assertEquals("Lait", reference.name)
+        }
+    }
+
+    @Test
     fun sharedSuggestionsAndExplicitLinksSurviveCreateEditAndUnlink() = runBlocking {
         val reference = dev.orestegabo.sequovendor.core.catalog.CatalogProductReference("ref-milk", "Lait", "grocery", listOf("milk"))
         val response = active.dropLast(1) + """, "productReference":{"id":"ref-milk","name":"Lait","category":"grocery","aliases":["milk"]}}"""

@@ -12,6 +12,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 interface VendorCatalogRepository {
+    suspend fun essentialProducts(): List<CatalogProductReference> = emptyList()
     suspend fun productSuggestions(query: String): List<CatalogProductReference> = emptyList()
     suspend fun listServerProducts(merchantId: String): ApiResult<List<CatalogProduct>>
 
@@ -50,6 +51,8 @@ class NetworkVendorCatalogRepository(
     private val apiClient: CatalogApiClient,
 ) : VendorCatalogRepository {
     private var localDrafts = emptyList<CatalogProduct>()
+
+    override suspend fun essentialProducts() = apiClient.essentialProducts()
 
     override suspend fun productSuggestions(query: String) = apiClient.productSuggestions(query)
 
