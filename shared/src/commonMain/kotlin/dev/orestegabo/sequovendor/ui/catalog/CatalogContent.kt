@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -134,6 +135,8 @@ internal fun CatalogContent(
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<CatalogStatusFilter?>(null) }
     var editingProduct by remember { mutableStateOf<CatalogProduct?>(null) }
+    val catalogList = rememberLazyListState()
+    LaunchedEffect(editingProduct?.id) { catalogList.scrollToItem(0) }
     VendorBackHandler(enabled = editingProduct != null) {
         if (!saveInProgress) {
             editingProduct = null
@@ -156,7 +159,7 @@ internal fun CatalogContent(
         .filter { product -> selectedCategory == null || product.category == selectedCategory }
         .filter { product -> selectedStatus?.matches(product.status) ?: true }
 
-    LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
+    LazyColumn(modifier.padding(horizontal = SequoDesign.ScreenGutter), state = catalogList, verticalArrangement = Arrangement.spacedBy(SequoDesign.SectionGap)) {
         if (editingProduct == null) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
